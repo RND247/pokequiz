@@ -362,10 +362,9 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 <body>
 
 <nav class="tab-bar">
-  <button class="tab-btn active" data-tab="pokemon">Pokémon Quiz</button>
+  <button class="tab-btn active" data-tab="pokemon">Regular Mode</button>
   <button class="tab-btn" data-tab="duel">⚔️ Duel Mode</button>
   <button class="tab-btn" data-tab="coop">🤝 Co-Op</button>
-  <button class="tab-btn" data-tab="wtp">Who's That Pokémon?</button>
 </nav>
 
 <header>
@@ -1093,12 +1092,10 @@ const Q = (function() {
   function flashInput() { $input.classList.add('flash-green'); setTimeout(() => $input.classList.remove('flash-green'), 300); }
 
   function showModal(won) {
-    const count = currentTab === 'wtp' ? wtpCorrect : foundSet.size;
+    const count = foundSet.size;
     $('modal-title').textContent = won ? 'Incredible!' : 'Results';
     $('modal-title').className = won ? 'win' : 'lose';
-    if (currentTab === 'wtp') {
-      $('modal-score').textContent = 'Name: ' + wtpCorrect + '/' + items.length + '  ·  Region: ' + wtpGenCorrect + '/' + items.length;
-    } else {
+    {
       $('modal-score').textContent = count + ' / ' + items.length;
     }
     $('modal-time').textContent = 'in ' + fmtTime(elapsedMs);
@@ -1267,10 +1264,6 @@ const Q = (function() {
     stopTimer(); timerRunning = false; $timer.textContent = '00:00';
     if (typeof paused !== 'undefined' && paused) { paused = false; $('pause-overlay').classList.remove('active'); $('btn-pause').textContent = '⏸ Pause'; }
     $input.value = ''; $input.disabled = false;
-    if (currentTab === 'wtp') {
-      wtpActivate(items);
-      return;
-    }
     updateUI(); displayOrder = items.map((_, i) => i);
     renderGrid(); $input.focus(); localStorage.removeItem(saveKey());
   }
@@ -2277,22 +2270,21 @@ const Q = (function() {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
 
     const isPoke = tab === 'pokemon';
-    const isWtp = tab === 'wtp';
     const isDuel = tab === 'duel';
     const isCoop = tab === 'coop';
     const isMulti = isDuel || isCoop;
-    const subtitles = { pokemon: 'Regular Mode', wtp: "Who's That Pokémon?", duel: '⚔️ Duel Mode', coop: '🤝 Co-Op Mode' };
+    const subtitles = { pokemon: 'Regular Mode', duel: '⚔️ Duel Mode', coop: '🤝 Co-Op Mode' };
     $('subtitle').textContent = subtitles[tab] || tab;
-    $input.placeholder = isWtp ? 'Type the Pokémon name…' : 'Type a Pokémon name…';
+    $input.placeholder = 'Type a Pokémon name…';
     if (!isPoke) stopCycleForms();
     $('set-order-section').style.display = isMulti ? 'none' : '';
-    $('set-sound').style.display = (isPoke || isWtp || isCoop) ? '' : 'none';
+    $('set-sound').style.display = (isPoke || isCoop) ? '' : 'none';
     $('set-shadows').style.display = isPoke ? '' : 'none';
     $('set-cycle').style.display = (isPoke || isCoop) ? '' : 'none';
     $('set-scroll').style.display = isMulti ? 'none' : '';
     $('set-typebg').style.display = isMulti ? 'none' : '';
 
-    $('action-bar').style.display = (isWtp || isMulti) ? 'none' : '';
+    $('action-bar').style.display = isMulti ? 'none' : '';
     $('btn-duel-link').style.display = isPoke ? '' : 'none';
     $('sep-duel-link').style.display = isPoke ? '' : 'none';
     $('duel-settings-bar').style.display = 'none';
@@ -2302,7 +2294,7 @@ const Q = (function() {
     $('btn-history').style.display = isMulti ? 'none' : '';
     $('best-display').style.display = isMulti ? 'none' : '';
 
-    if ((isPoke || isWtp || isMulti) && !pokeFamilies) {
+    if ((isPoke || isMulti) && !pokeFamilies) {
       fetch('families.json').then(r => r.json()).then(fams => {
         pokeFamilies = fams;
         pokeFamilyMap = {};
@@ -2312,7 +2304,7 @@ const Q = (function() {
     if ((isPoke || isMulti) && !pokeForms) {
       fetch('pokemon_forms.json').then(r => r.json()).then(data => { pokeForms = data; refreshTypeBgs(); }).catch(() => {});
     }
-    if ((isPoke || isWtp || isMulti) && !pokeDetails) {
+    if ((isPoke || isMulti) && !pokeDetails) {
       fetch('pokemon_details.json').then(r => r.json()).then(data => {
         pokeDetails = data;
         if (isPoke) refreshTypeBgs();
@@ -2326,17 +2318,6 @@ const Q = (function() {
 
     if (isCoop) {
       coopShowLobby();
-      return;
-    }
-
-    if (isWtp) {
-      const cached = dataSources['pokemon'];
-      if (cached) { wtpActivate(cached); }
-      else {
-        $('grid-wrap').innerHTML = '<div class="loading">Loading…</div>';
-        fetch('pokemon.json').then(r => r.json()).then(data => { dataSources['pokemon'] = data; wtpActivate(data); })
-          .catch(() => { $('grid-wrap').innerHTML = '<div class="loading">Failed to load data.</div>'; });
-      }
       return;
     }
 
@@ -2388,11 +2369,6 @@ const Q = (function() {
     const val = this.value.trim();
     if (!timerRunning && !givenUp && val.length > 0) startTimer();
 
-    if (currentTab === 'wtp') {
-      wtpHandleInput(val);
-      return;
-    }
-
     if (currentTab === 'duel') {
       duelHandleInput(val);
       return;
@@ -2420,9 +2396,6 @@ const Q = (function() {
 
   $input.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') { this.value = ''; }
-    if (e.key === 'Enter' && currentTab === 'wtp') {
-      if (!wtpRevealed) { wtpSkip(); }
-    }
   });
 
   document.addEventListener('keydown', function(e) {
