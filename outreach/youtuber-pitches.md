@@ -141,7 +141,7 @@
 > **Co-Op Mode** — Same setup, but you're a *team*. Shared score, shared reveals. When MandJTV names one, you both see it. Can you two combined name all 1,025? The scoreboard tracks your Co-Op history so you can try to beat your record.
 >
 > Audience engagement features:
-> - **Cries play on reveal** — chat can try to guess before the name shows
+> - **Cries play on reveal** — instant nostalgia, and chat reactions to some of the weirder cries are gold
 > - **Confetti on generation completion** — satisfying visual payoff
 > - **Evolution tree toasts** — complete a family and see the branching tree (Eevee's is massive)
 > - **Pokedex popups** — hover for types, abilities, lore
@@ -333,7 +333,7 @@
 > - **Co-Op Mode** — Team up with a friend, shared grid and score, try to hit 100% together
 >
 > Here's why it's built for video content:
-> - **Pokemon cries play on each reveal** — instant nostalgia, and your chat will go crazy trying to identify them before the name shows
+> - **Pokemon cries play on each reveal** — instant nostalgia hit, and chat reactions to some of the more obscure or unexpected cries are priceless
 > - **Confetti explodes** when you clear an entire generation — those milestone moments viewers love
 > - **Evolution family tree popups** — complete a line like Charmander → Charmeleon → Charizard and get a branching tree toast with a pun (Eevee's tree is massive)
 > - **Pokedex popup on hover** — types, abilities, fun facts; perfect for "wait, what type IS that?" moments
