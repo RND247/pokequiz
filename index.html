@@ -59,6 +59,11 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 .icon-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); width: 32px; height: 32px; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; position: relative; padding: 0; line-height: 1; }
 .icon-btn:hover { border-color: var(--text-pinyin); color: var(--text); }
 
+.mode-slider { display: flex; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.mode-slider button { background: none; border: none; color: var(--text-dim); padding: 5px 12px; font-size: 0.68rem; font-weight: 700; cursor: pointer; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.mode-slider button:hover { color: var(--text); }
+.mode-slider button.active { background: var(--accent); color: #fff; }
+
 .settings-wrap { position: relative; }
 .settings-panel { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; min-width: 180px; z-index: 150; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 .settings-panel.open { display: block; }
@@ -286,8 +291,10 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
     <button class="btn danger" id="btn-give-up">Give Up</button>
     <button class="btn" id="btn-reset">Reset</button>
     <div class="btn-sep"></div>
-    <button class="icon-btn" id="btn-shuffle" title="Shuffle">🔀</button>
-    <button class="icon-btn" id="btn-order" title="Dex Order">📋</button>
+    <div class="mode-slider" id="mode-slider">
+      <button id="btn-order" class="active">Dex Order</button>
+      <button id="btn-shuffle">Shuffle</button>
+    </div>
     <div class="btn-sep"></div>
     <div class="settings-wrap">
       <button class="icon-btn" id="btn-settings" title="Settings">⚙️</button>
@@ -365,6 +372,7 @@ const Q = (function() {
   let shadowsEnabled = false;
   let cycleFormsEnabled = false;
   let cycleFormsInterval = null;
+  let shuffleMode = false;
 
   let keyToIndices = {};
   let allKeys = [];
@@ -555,6 +563,15 @@ const Q = (function() {
       const frag = document.createDocumentFragment();
       for (const idx of displayOrder) frag.appendChild(makeCard(idx));
       grid.appendChild(frag);
+    } else if (shuffleMode) {
+      wrap.innerHTML = '';
+      wrap.classList.toggle('shadows-on', shadowsEnabled);
+      regionIndices = {};
+      for (const idx of displayOrder) { const r = items[idx].g; (regionIndices[r] ||= []).push(idx); }
+      const grid = document.createElement('div');
+      grid.className = 'region-grid';
+      for (const idx of displayOrder) grid.appendChild(makeCard(idx));
+      wrap.appendChild(grid);
     } else {
       wrap.innerHTML = '';
       wrap.classList.toggle('shadows-on', shadowsEnabled);
@@ -1021,6 +1038,9 @@ const Q = (function() {
 
   function reset() {
     givenUp = false; foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set(); completedRegions = new Set();
+    shuffleMode = false;
+    $('btn-order').classList.add('active');
+    $('btn-shuffle').classList.remove('active');
     stopTimer(); timerRunning = false; $timer.textContent = '00:00';
     $input.value = ''; $input.disabled = false;
     if (currentTab === 'wtp') {
@@ -1032,15 +1052,32 @@ const Q = (function() {
   }
 
   function shuffle() {
+    shuffleMode = true;
     for (let i = displayOrder.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [displayOrder[i], displayOrder[j]] = [displayOrder[j], displayOrder[i]]; }
+    $('btn-shuffle').classList.add('active');
+    $('btn-order').classList.remove('active');
     renderGrid();
-    foundSet.forEach(i => { const c = $('c' + i); if (c) { c.className = 'card found'; revealCardContent(i); } });
+    restoreRevealed();
   }
 
   function order() {
+    shuffleMode = false;
     displayOrder = items.map((_, i) => i);
+    $('btn-order').classList.add('active');
+    $('btn-shuffle').classList.remove('active');
     renderGrid();
+    restoreRevealed();
+  }
+
+  function restoreRevealed() {
     foundSet.forEach(i => { const c = $('c' + i); if (c) { c.className = 'card found'; revealCardContent(i); } });
+    if (currentTab === 'pokemon') {
+      for (const region of REGION_ORDER) {
+        if (!completedRegions.has(region)) continue;
+        const sec = $('rs-' + region);
+        if (sec) sec.classList.add('region-complete');
+      }
+    }
   }
 
   // ── Who's That Pokemon mode ──
@@ -1323,8 +1360,8 @@ const Q = (function() {
 
   $('btn-give-up').addEventListener('click', giveUp);
   $('btn-reset').addEventListener('click', reset);
-  $('btn-shuffle').addEventListener('click', shuffle);
-  $('btn-order').addEventListener('click', order);
+  $('btn-shuffle').addEventListener('click', function() { if (!shuffleMode) shuffle(); });
+  $('btn-order').addEventListener('click', function() { if (shuffleMode) order(); });
 
   $('btn-settings').addEventListener('click', function(e) {
     e.stopPropagation();
