@@ -113,7 +113,7 @@
 > - **Hover over any Pokemon** to see its full Pokedex entry, types, abilities
 > - **Confetti explodes** when you complete a whole generation
 > - **Evolution family trees** pop up when you complete a line — with branching paths and puns
-> - **Shadow silhouettes** for unrevealed Pokemon
+> - **Shadow silhouettes** as hints — see the outline of unrevealed Pokemon to jog your memory (not just pure recall)
 > - **Form toggle** — see Alolan, Galarian variants with a click
 >
 > There's also **Co-Op Mode** — team up with a friend on a shared grid with a shared score. Both of you name Pokemon together, everything is revealed for both in real time. It's wholesome, it's fun, and it's perfect for a collab.
@@ -146,7 +146,7 @@
 > - **Evolution tree toasts** — complete a family and see the branching tree (Eevee's is massive)
 > - **Pokedex popups** — hover for types, abilities, lore
 > - **Synchronized pause** — either player can pause the game for both
-> - **Host controls shadows & order** — add that extra difficulty layer
+> - **Host controls shadows & order** — shadows show silhouette hints to help players recall names, host can toggle them
 > - **Generation grouping with counters** — viewers can track progress per gen
 >
 > Zero setup — just a browser link. Video ideas:
@@ -177,7 +177,7 @@
 > - **Pokemon cries on each reveal** — instant audience engagement
 > - **Confetti animations** on generation completion
 > - **Evolution family tree popups** with branching paths and puns
-> - **Shadows mode** — adds difficulty (host controls it for both)
+> - **Shadows mode** — silhouette hints for unrevealed Pokemon (host toggles for both players)
 > - **Three order modes** — Dex + Gens, Dex Order, or Random
 > - **Synchronized pause** — either player can pause for both
 > - **Co-Op scoreboard** — track your team records over time
@@ -255,7 +255,7 @@
 > - **Cries play on reveal** — chat engagement on autopilot
 > - **Confetti on gen completion** — satisfying visual moments
 > - **Evolution tree popups** — branching trees with puns on family completion
-> - **Shadow silhouettes** — adds difficulty and mystery
+> - **Shadow silhouettes** — hints that help you recall names by showing Pokemon outlines
 > - **Random order mode** — can't just memorize the Pokedex order
 > - **Synchronized pause** — either player can pause for both
 >
@@ -280,7 +280,7 @@
 > Why it works for your format:
 > - **Zero setup** — browser link, no downloads, instant join
 > - **Built-in spectator appeal** — cries play on reveal, confetti on milestones, evolution tree popups, live scores
-> - **Host controls difficulty** — shadows on/off, random order vs dex order
+> - **Host controls settings** — shadow hints on/off, random order vs dex order
 > - **Synchronized pause** — either player can pause, so no excuses
 > - **Natural drama** — seeing your opponent's slots light up in Duel, or watching the team count climb in Co-Op
 >
@@ -310,7 +310,7 @@
 > - **Confetti** when you finish a whole generation
 > - **Evolution tree popups** with branching paths and puns
 > - **Pokedex details on hover** — for those "wait, what type is this?" debates
-> - **Shadow mode** — adds difficulty if you want it
+> - **Shadow mode** — silhouette hints to help jog your memory (or turn them off for pure recall)
 > - **Synchronized pause** — pause for both players at once
 >
 > Free, browser-based, 2-second setup. Would make a great chill video with a friend — competitive OR cooperative!
@@ -332,19 +332,19 @@
 > - **Duel Mode** — 1v1 real-time naming race on a shared grid (Blue vs Red, live scoreboard)
 > - **Co-Op Mode** — Team up with a friend, shared grid and score, try to hit 100% together
 >
-> Audience engagement features:
-> - Pokemon cries play on each reveal
-> - Confetti celebration on generation completion
-> - Evolution family tree popups with branching paths and puns
-> - Pokedex popup with types, abilities, and fun facts
-> - Shadow silhouettes for unrevealed Pokemon
-> - Alternate form toggles (Alolan, Galarian, etc.)
-> - Type-colored card backgrounds
-> - Three order modes: Generation-grouped, Dex order, or Random
-> - Synchronized pause in multiplayer modes
-> - Co-Op scoreboard to track team records
+> Here's why it's built for video content:
+> - **Pokemon cries play on each reveal** — instant nostalgia, and your chat will go crazy trying to identify them before the name shows
+> - **Confetti explodes** when you clear an entire generation — those milestone moments viewers love
+> - **Evolution family tree popups** — complete a line like Charmander → Charmeleon → Charizard and get a branching tree toast with a pun (Eevee's tree is massive)
+> - **Pokedex popup on hover** — types, abilities, fun facts; perfect for "wait, what type IS that?" moments
+> - **Shadow silhouettes** as hints — see the outlines of unrevealed Pokemon to jog your memory, or turn them off for pure recall mode
+> - **Alternate form toggles** — cycle through Alolan, Galarian, Paldean variants on revealed cards
+> - **Type-colored card backgrounds** — the grid looks amazing on camera as it fills up
+> - **Generation grouping with live counters** — viewers can track your progress per gen in real time
+> - **Synchronized pause** in multiplayer — either player can pause for both, no awkward desync
+> - **Co-Op scoreboard** — track your team records and try to beat them
 >
-> Zero setup — just a browser link. No download, no login. I built it specifically because I thought existing quizzes didn't have enough features for video content.
+> Zero setup — just a browser link. No download, no login. I built it because I thought existing quizzes didn't have enough features to make truly engaging video content.
 >
 > Video ideas:
 > - "[Name] vs [Friend]: Who Knows More Pokemon?" (Duel)
