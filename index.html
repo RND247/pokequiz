@@ -499,13 +499,18 @@ const Q = (function() {
   let elapsedMs = 0;
   let timerRunning = false;
   let givenUp = false;
-  let soundEnabled = true;
-  let shadowsEnabled = false;
-  let cycleFormsEnabled = true;
+  var _savedSettings = {};
+  try { _savedSettings = JSON.parse(localStorage.getItem('namemall_settings')) || {}; } catch(e) {}
+  let soundEnabled = _savedSettings.sound !== undefined ? _savedSettings.sound : true;
+  let shadowsEnabled = _savedSettings.shadows !== undefined ? _savedSettings.shadows : false;
+  let cycleFormsEnabled = _savedSettings.cycle !== undefined ? _savedSettings.cycle : true;
   let cycleFormsInterval = null;
-  let autoScrollEnabled = true;
-  let typeBgEnabled = true;
-  let orderMode = 'dex-gens';
+  let autoScrollEnabled = _savedSettings.scroll !== undefined ? _savedSettings.scroll : true;
+  let typeBgEnabled = _savedSettings.typebg !== undefined ? _savedSettings.typebg : true;
+  let orderMode = _savedSettings.order || 'dex-gens';
+  function saveSettings() {
+    localStorage.setItem('namemall_settings', JSON.stringify({ sound: soundEnabled, shadows: shadowsEnabled, cycle: cycleFormsEnabled, scroll: autoScrollEnabled, typebg: typeBgEnabled, order: orderMode }));
+  }
 
   let keyToIndices = {};
   let allKeys = [];
@@ -1215,6 +1220,7 @@ const Q = (function() {
       displayOrder = items.map((_, i) => i);
     }
     $('mode-slider').querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b.dataset.order === mode); });
+    saveSettings();
     renderGrid();
     restoreRevealed();
   }
@@ -1943,17 +1949,20 @@ const Q = (function() {
     soundEnabled = !soundEnabled;
     $('tog-sound').classList.toggle('on', soundEnabled);
     $('dtog-sound').classList.toggle('on', soundEnabled);
+    saveSettings();
   });
   $('dset-sound').addEventListener('click', function() {
     soundEnabled = !soundEnabled;
     $('tog-sound').classList.toggle('on', soundEnabled);
     $('dtog-sound').classList.toggle('on', soundEnabled);
+    saveSettings();
   });
 
   $('set-shadows').addEventListener('click', function() {
     shadowsEnabled = !shadowsEnabled;
     $('tog-shadows').classList.toggle('on', shadowsEnabled);
     $('grid-wrap').classList.toggle('shadows-on', shadowsEnabled);
+    saveSettings();
   });
 
   $('set-cycle').addEventListener('click', function() {
@@ -1961,29 +1970,34 @@ const Q = (function() {
     $('tog-cycle').classList.toggle('on', cycleFormsEnabled);
     $('dtog-cycle').classList.toggle('on', cycleFormsEnabled);
     if (cycleFormsEnabled) startCycleForms(); else stopCycleForms();
+    saveSettings();
   });
   $('dset-cycle').addEventListener('click', function() {
     cycleFormsEnabled = !cycleFormsEnabled;
     $('tog-cycle').classList.toggle('on', cycleFormsEnabled);
     $('dtog-cycle').classList.toggle('on', cycleFormsEnabled);
     if (cycleFormsEnabled) startCycleForms(); else stopCycleForms();
+    saveSettings();
   });
 
   $('set-scroll').addEventListener('click', function() {
     autoScrollEnabled = !autoScrollEnabled;
     $('tog-scroll').classList.toggle('on', autoScrollEnabled);
     $('dtog-scroll').classList.toggle('on', autoScrollEnabled);
+    saveSettings();
   });
   $('dset-scroll').addEventListener('click', function() {
     autoScrollEnabled = !autoScrollEnabled;
     $('tog-scroll').classList.toggle('on', autoScrollEnabled);
     $('dtog-scroll').classList.toggle('on', autoScrollEnabled);
+    saveSettings();
   });
 
   $('set-typebg').addEventListener('click', function() {
     typeBgEnabled = !typeBgEnabled;
     $('tog-typebg').classList.toggle('on', typeBgEnabled);
     refreshTypeBgs();
+    saveSettings();
   });
 
   function setTheme(mode) {
@@ -1998,6 +2012,16 @@ const Q = (function() {
   $('btn-light').addEventListener('click', function() { setTheme('light'); });
   $('dbtn-dark').addEventListener('click', function() { setTheme('dark'); });
   $('dbtn-light').addEventListener('click', function() { setTheme('light'); });
+  $('tog-sound').classList.toggle('on', soundEnabled);
+  $('dtog-sound').classList.toggle('on', soundEnabled);
+  $('tog-shadows').classList.toggle('on', shadowsEnabled);
+  $('tog-cycle').classList.toggle('on', cycleFormsEnabled);
+  $('dtog-cycle').classList.toggle('on', cycleFormsEnabled);
+  $('tog-scroll').classList.toggle('on', autoScrollEnabled);
+  $('dtog-scroll').classList.toggle('on', autoScrollEnabled);
+  $('tog-typebg').classList.toggle('on', typeBgEnabled);
+  $('mode-slider').querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b.dataset.order === orderMode); });
+
   if (localStorage.getItem('namemall_theme') === 'light') {
     document.body.classList.add('light');
     $('btn-light').classList.add('active');
