@@ -2309,6 +2309,11 @@ const Q = (function() {
 
   function switchTab(tab) {
     if (tab === currentTab && items.length) return;
+    if ((currentTab === 'duel' && duelActive) || (currentTab === 'coop' && coopActive)) {
+      if (!confirm('Leaving will end the current session for both players. Continue?')) return;
+      var conn = currentTab === 'duel' ? duelConn : coopConn;
+      if (conn) try { conn.send({ type: 'end' }); } catch(e) {}
+    }
     stopTimer(); timerRunning = false; givenUp = false;
     if (typeof paused !== 'undefined' && paused) { paused = false; $('pause-overlay').classList.remove('active'); $('btn-pause').textContent = '⏸ Pause'; }
     if (currentTab === 'duel') duelCleanup();
