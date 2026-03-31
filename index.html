@@ -1695,9 +1695,7 @@ const Q = (function() {
     const colorClass = owner === 'blue' ? 'duel-blue' : 'duel-red';
 
     if (isMe) {
-      var prev = document.querySelector('.card.last-revealed');
-      if (prev) prev.classList.remove('last-revealed');
-      c.className = 'card duel-mine last-revealed ' + colorClass;
+      c.className = 'card duel-mine ' + colorClass;
       c.querySelector('.poke-sprite').src = w.s;
       c.querySelector('.poke-name').textContent = w.n;
       c.querySelector('.poke-gen').textContent = w.g;
@@ -1727,12 +1725,12 @@ const Q = (function() {
         duelConn.send({ type: 'reveal', indices: newReveals, player: duelRole });
         duelUpdateScore();
         flashInput();
+        $input.value = '';
         if (autoScrollEnabled) setTimeout(function() {
-          var card = $('c' + matches[0]);
+          var card = $('c' + newReveals[0]);
           if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 50);
       }
-      $input.value = '';
     }
   }
 
