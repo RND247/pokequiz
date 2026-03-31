@@ -444,6 +444,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
       <span class="ds-red">🔴 Red: <span id="ds-red-count">0</span></span>
     </div>
     <div class="duel-finish-bar" id="duel-finish-bar">
+      <button class="btn" id="duel-pause-btn">⏸ Pause</button>
       <button class="btn danger" id="duel-finish-btn">Finish</button>
       <span class="duel-finish-status" id="duel-finish-status"></span>
     </div>
@@ -476,6 +477,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
       <span class="cs-neutral">Remaining: <span id="cs-remaining-count">0</span></span>
     </div>
     <div class="duel-finish-bar" id="coop-finish-bar">
+      <button class="btn" id="coop-pause-btn">⏸ Pause</button>
       <button class="btn danger" id="coop-finish-btn">Finish</button>
       <span class="duel-finish-status" id="coop-finish-status"></span>
     </div>
@@ -1699,9 +1701,11 @@ const Q = (function() {
     $('ds-neutral-count').textContent = items.length;
     $('ds-blue-count').textContent = '0';
     $('ds-red-count').textContent = '0';
-    $('duel-finish-bar').innerHTML = '<button class="btn danger" id="duel-finish-btn">Finish</button>' +
+    $('duel-finish-bar').innerHTML = '<button class="btn" id="duel-pause-btn">⏸ Pause</button>' +
+      '<button class="btn danger" id="duel-finish-btn">Finish</button>' +
       '<span class="duel-finish-status" id="duel-finish-status"></span>';
     $('duel-finish-invite').classList.remove('show');
+    $('duel-pause-btn').addEventListener('click', function() { multiTogglePause('duel'); });
     $('duel-finish-btn').addEventListener('click', duelFinish);
     $('duel-accept-finish').addEventListener('click', duelFinish);
 
@@ -1837,6 +1841,10 @@ const Q = (function() {
       if (invite) invite.classList.add('show');
     } else if (msg.type === 'end') {
       duelEnd();
+    } else if (msg.type === 'pause') {
+      applyMultiPause('duel', true);
+    } else if (msg.type === 'resume') {
+      applyMultiPause('duel', false);
     } else if (msg.type === 'join') {
       // guest joined, handled in connection event
     }
@@ -1858,6 +1866,8 @@ const Q = (function() {
   function duelEnd() {
     duelActive = false;
     stopTimer();
+    paused = false;
+    $('pause-overlay').classList.remove('active');
     $input.disabled = true;
     var invite = $('duel-finish-invite');
     if (invite) invite.classList.remove('show');
@@ -2112,9 +2122,11 @@ const Q = (function() {
     $('cs-total-count').textContent = items.length;
     $('cs-found-count').textContent = '0';
     $('cs-remaining-count').textContent = items.length;
-    $('coop-finish-bar').innerHTML = '<button class="btn danger" id="coop-finish-btn">Finish</button>' +
+    $('coop-finish-bar').innerHTML = '<button class="btn" id="coop-pause-btn">⏸ Pause</button>' +
+      '<button class="btn danger" id="coop-finish-btn">Finish</button>' +
       '<span class="duel-finish-status" id="coop-finish-status"></span>';
     $('coop-finish-invite').classList.remove('show');
+    $('coop-pause-btn').addEventListener('click', function() { multiTogglePause('coop'); });
     $('coop-finish-btn').addEventListener('click', coopFinish);
     $('coop-accept-finish').addEventListener('click', coopFinish);
 
@@ -2235,6 +2247,10 @@ const Q = (function() {
       if (invite) invite.classList.add('show');
     } else if (msg.type === 'end') {
       coopEnd();
+    } else if (msg.type === 'pause') {
+      applyMultiPause('coop', true);
+    } else if (msg.type === 'resume') {
+      applyMultiPause('coop', false);
     } else if (msg.type === 'join') {
       // guest joined
     }
@@ -2256,6 +2272,8 @@ const Q = (function() {
   function coopEnd() {
     coopActive = false;
     stopTimer();
+    paused = false;
+    $('pause-overlay').classList.remove('active');
     $input.disabled = true;
     var invite = $('coop-finish-invite');
     if (invite) invite.classList.remove('show');
@@ -2455,10 +2473,52 @@ const Q = (function() {
       $input.focus();
     }
   }
+
+  function applyMultiPause(mode, isPaused) {
+    paused = isPaused;
+    var btnId = mode === 'duel' ? 'duel-pause-btn' : 'coop-pause-btn';
+    var btn = $(btnId);
+    if (isPaused) {
+      stopTimer();
+      $input.disabled = true;
+      $('pause-overlay').classList.add('active');
+      if (btn) btn.textContent = '▶ Resume';
+    } else {
+      startTimer();
+      $input.disabled = false;
+      $('pause-overlay').classList.remove('active');
+      if (btn) btn.textContent = '⏸ Pause';
+      $input.focus();
+    }
+  }
+
+  function multiTogglePause(mode) {
+    var active = mode === 'duel' ? duelActive : coopActive;
+    var conn = mode === 'duel' ? duelConn : coopConn;
+    if (!active || (!timerRunning && !paused)) return;
+    var newState = !paused;
+    applyMultiPause(mode, newState);
+    if (conn) conn.send({ type: newState ? 'pause' : 'resume' });
+  }
+
   $('btn-pause').addEventListener('click', togglePause);
-  $('pause-overlay').addEventListener('click', function() { if (paused) togglePause(); });
+  $('pause-overlay').addEventListener('click', function() {
+    if (!paused) return;
+    if (currentTab === 'duel' || currentTab === 'coop') {
+      multiTogglePause(currentTab);
+    } else {
+      togglePause();
+    }
+  });
   document.addEventListener('keydown', function(e) {
-    if (paused && e.key !== 'F5' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); togglePause(); }
+    if (paused && e.key !== 'F5' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      if (currentTab === 'duel' || currentTab === 'coop') {
+        multiTogglePause(currentTab);
+      } else {
+        togglePause();
+      }
+    }
   });
   $('mode-slider').addEventListener('click', function(e) {
     var btn = e.target.closest('button');
