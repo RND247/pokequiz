@@ -322,6 +322,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
         <div class="setting-row" id="set-shadows"><span class="setting-label">Shadows</span><div class="toggle-switch" id="tog-shadows"></div></div>
         <div class="setting-row" id="set-cycle"><span class="setting-label">Cycle Forms</span><div class="toggle-switch on" id="tog-cycle"></div></div>
         <div class="setting-row" id="set-scroll"><span class="setting-label">Auto-scroll</span><div class="toggle-switch on" id="tog-scroll"></div></div>
+        <div class="setting-row" id="set-typebg"><span class="setting-label">Type Backgrounds</span><div class="toggle-switch on" id="tog-typebg"></div></div>
         <div class="settings-divider"></div>
         <div class="settings-section-label">Theme</div>
         <div class="setting-row-slider">
@@ -401,6 +402,7 @@ const Q = (function() {
   let cycleFormsEnabled = true;
   let cycleFormsInterval = null;
   let autoScrollEnabled = true;
+  let typeBgEnabled = true;
   let shuffleMode = false;
 
   let keyToIndices = {};
@@ -631,6 +633,7 @@ const Q = (function() {
   function playCry(id) { try { const a = new Audio(pokeCryUrl(id)); a.volume = 0.3; a.play().catch(()=>{}); } catch(e){} }
 
   function setTypeBg(c, types) {
+    if (!typeBgEnabled) { c.style.background = ''; return; }
     if (!types || !types.length) return;
     const a = 0.3;
     if (types.length === 1) {
@@ -1418,6 +1421,12 @@ const Q = (function() {
   $('set-scroll').addEventListener('click', function() {
     autoScrollEnabled = !autoScrollEnabled;
     $('tog-scroll').classList.toggle('on', autoScrollEnabled);
+  });
+
+  $('set-typebg').addEventListener('click', function() {
+    typeBgEnabled = !typeBgEnabled;
+    $('tog-typebg').classList.toggle('on', typeBgEnabled);
+    refreshTypeBgs();
   });
 
   $('btn-dark').addEventListener('click', function() {
