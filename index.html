@@ -1426,6 +1426,7 @@ const Q = (function() {
     duelActive = false;
     duelFinishMe = false;
     duelFinishOpponent = false;
+    if (duelConnTimeout) { clearTimeout(duelConnTimeout); duelConnTimeout = null; }
     if (duelConn) { try { duelConn.close(); } catch(e){} duelConn = null; }
     if (duelPeer) { try { duelPeer.destroy(); } catch(e){} duelPeer = null; }
     duelRole = null;
@@ -1474,21 +1475,26 @@ const Q = (function() {
     }
   }
 
+  var duelIceConfig = { iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    { urls: 'turn:freeturn.net:3478', username: 'free', credential: 'free' },
+    { urls: 'turns:freeturn.net:5349', username: 'free', credential: 'free' },
+    { urls: 'turn:standard.relay.metered.ca:80', username: 'e43e3f4e0a50b3e105364037', credential: 'JOKLaMvFo6Qitacx' },
+    { urls: 'turn:standard.relay.metered.ca:443', username: 'e43e3f4e0a50b3e105364037', credential: 'JOKLaMvFo6Qitacx' },
+    { urls: 'turns:standard.relay.metered.ca:443?transport=tcp', username: 'e43e3f4e0a50b3e105364037', credential: 'JOKLaMvFo6Qitacx' }
+  ]};
+  var duelConnTimeout = null;
+
   function duelCreate() {
     const roomId = duelGenId();
     duelRole = 'blue';
     $('duel-create-btn').disabled = true;
     $('duel-create-btn').textContent = 'Creating…';
-    $('duel-status').textContent = 'Setting up…';
+    $('duel-status').textContent = 'Connecting to signaling server…';
 
-    var iceConfig = { iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'turns:freeturn.net:5349', username: 'free', credential: 'free' },
-      { urls: 'turn:freeturn.net:3478', username: 'free', credential: 'free' }
-    ]};
-    duelPeer = new Peer(roomId, { config: iceConfig, debug: 0 });
+    duelPeer = new Peer(roomId, { config: duelIceConfig, debug: 1 });
     duelPeer.on('open', function(id) {
       const link = window.location.origin + window.location.pathname + '?duel=' + id;
       $('duel-link-area').innerHTML =
@@ -1497,15 +1503,20 @@ const Q = (function() {
         '<input type="text" id="duel-link-input" value="' + link + '" readonly>' +
         '<button class="btn" id="duel-copy-btn">Copy</button></div>';
       $('duel-create-btn').style.display = 'none';
-      $('duel-status').textContent = 'Waiting for opponent to join…';
+      $('duel-status').textContent = 'Room ready! Waiting for opponent to join…';
       $('duel-copy-btn').addEventListener('click', function() {
         navigator.clipboard.writeText(link).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 1500); });
       });
     });
     duelPeer.on('connection', function(conn) {
       duelConn = conn;
+      $('duel-status').textContent = 'Opponent found! Establishing connection…';
+      duelConnTimeout = setTimeout(function() {
+        if (!duelActive) $('duel-status').textContent = 'Connection is taking long… If it doesn\'t connect, both players try refreshing.';
+      }, 15000);
       duelConn.on('open', function() {
-        $('duel-status').textContent = 'Opponent connected! Starting…';
+        clearTimeout(duelConnTimeout);
+        $('duel-status').textContent = 'Connected! Starting game…';
         const cached = dataSources['pokemon'];
         if (cached) { duelStart(cached); }
         else {
@@ -1514,47 +1525,63 @@ const Q = (function() {
       });
       duelConn.on('data', duelOnMessage);
       duelConn.on('close', function() {
+        clearTimeout(duelConnTimeout);
         if (duelActive) { duelActive = false; duelShowStatus('Opponent disconnected.'); }
+      });
+      duelConn.on('error', function(err) {
+        clearTimeout(duelConnTimeout);
+        $('duel-status').textContent = 'Data connection error. Try refreshing.';
       });
     });
     duelPeer.on('error', function(err) {
-      $('duel-status').textContent = 'Connection error: ' + err.type + '. Try refreshing the page.';
+      clearTimeout(duelConnTimeout);
+      $('duel-status').textContent = 'Error: ' + err.type + ' — ' + (err.message || 'Try refreshing.');
       $('duel-create-btn').style.display = '';
       $('duel-create-btn').disabled = false;
       $('duel-create-btn').textContent = 'Create Duel';
     });
     duelPeer.on('disconnected', function() {
-      if (!duelActive) $('duel-status').textContent = 'Disconnected from server. Try again.';
+      if (!duelActive) {
+        $('duel-status').textContent = 'Lost connection to server. Reconnecting…';
+        try { duelPeer.reconnect(); } catch(e) {}
+      }
     });
   }
 
   function duelJoin(hostId) {
     duelRole = 'red';
-    var iceConfig = { iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'turns:freeturn.net:5349', username: 'free', credential: 'free' },
-      { urls: 'turn:freeturn.net:3478', username: 'free', credential: 'free' }
-    ]};
-    duelPeer = new Peer({ config: iceConfig, debug: 0 });
+    $('duel-status').textContent = 'Connecting to signaling server…';
+    duelPeer = new Peer({ config: duelIceConfig, debug: 1 });
     duelPeer.on('open', function() {
-      $('duel-status').textContent = 'Connecting to host…';
+      $('duel-status').textContent = 'Connected to server. Reaching host…';
       duelConn = duelPeer.connect(hostId, { reliable: true });
+      duelConnTimeout = setTimeout(function() {
+        if (!duelActive) $('duel-status').textContent = 'Connection is taking long… If it doesn\'t connect, both players try refreshing.';
+      }, 15000);
       duelConn.on('open', function() {
+        clearTimeout(duelConnTimeout);
         $('duel-status').textContent = 'Connected! Waiting for game to start…';
         duelConn.send({ type: 'join' });
       });
       duelConn.on('data', duelOnMessage);
       duelConn.on('close', function() {
+        clearTimeout(duelConnTimeout);
         if (duelActive) { duelActive = false; duelShowStatus('Host disconnected.'); }
+      });
+      duelConn.on('error', function(err) {
+        clearTimeout(duelConnTimeout);
+        $('duel-status').textContent = 'Data connection error. Try refreshing.';
       });
     });
     duelPeer.on('error', function(err) {
-      $('duel-status').textContent = 'Connection error: ' + err.type + '. Try refreshing the page.';
+      clearTimeout(duelConnTimeout);
+      $('duel-status').textContent = 'Error: ' + err.type + ' — ' + (err.message || 'Try refreshing.');
     });
     duelPeer.on('disconnected', function() {
-      if (!duelActive) $('duel-status').textContent = 'Disconnected from server. Try again.';
+      if (!duelActive) {
+        $('duel-status').textContent = 'Lost connection to server. Reconnecting…';
+        try { duelPeer.reconnect(); } catch(e) {}
+      }
     });
   }
 
