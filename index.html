@@ -276,6 +276,8 @@ body.light .wtp-img.shadow { filter: brightness(0) drop-shadow(0 0 6px rgba(0,0,
 
 footer { text-align: center; padding: 24px 16px; font-size: 0.7rem; color: var(--text-dim); border-top: 1px solid var(--border); margin-top: 16px; }
 footer a { color: var(--text-pinyin); text-decoration: none; }
+.donate-btn { display: inline-block; margin-top: 10px; padding: 6px 18px; background: #ff5e5b; color: #fff; font-weight: 700; font-size: 0.78rem; border-radius: 6px; text-decoration: none; transition: background 0.15s, transform 0.15s; }
+.donate-btn:hover { background: #e04e4b; transform: scale(1.05); color: #fff; }
 .loading { display: flex; align-items: center; justify-content: center; height: 50vh; color: var(--text-dim); font-size: 1.1rem; grid-column: 1 / -1; }
 
 @media (max-width: 640px) {
@@ -390,6 +392,8 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 <footer>
   Data: <a href="https://pokeapi.co" target="_blank">PokéAPI</a>
   · Inspired by <a href="https://pkmnquiz.com" target="_blank">pkmnquiz.com</a>
+  <br>
+  <a href="https://ko-fi.com/rand32491" target="_blank" class="donate-btn">☕ Support on Ko-fi</a>
 </footer>
 
 <script>
