@@ -345,6 +345,18 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .duel-finish-invite span { font-size: 0.78rem; color: var(--text); font-weight: 600; }
 .duel-finish-invite button { margin-left: 10px; font-size: 0.7rem; padding: 4px 14px; }
 @keyframes duel-invite-pulse { 0%, 100% { border-color: rgba(248,113,113,0.4); } 50% { border-color: rgba(248,113,113,0.8); } }
+
+/* ── Co-Op Mode ── */
+.coop-sticky { padding: 6px 0 4px; border-top: 1px solid var(--border); margin-top: 6px; }
+.coop-score { display: flex; align-items: center; justify-content: center; gap: 20px; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.coop-score .cs-team { color: #34d399; }
+.coop-score .cs-neutral { color: var(--text-dim); }
+.card.coop-found { border-color: #34d399; box-shadow: 0 0 6px rgba(52,211,153,0.3); }
+.card.coop-found .poke-placeholder { display: none; }
+.card.coop-found .poke-shadow { display: none; }
+.card.coop-found .poke-sprite { width: 56px; height: 56px; object-fit: contain; }
+.card.coop-found .poke-name { font-size: 0.45rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 92%; text-align: center; }
+.card.coop-found .poke-gen { font-size: 0.4rem; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -352,6 +364,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 <nav class="tab-bar">
   <button class="tab-btn active" data-tab="pokemon">Pokémon Quiz</button>
   <button class="tab-btn" data-tab="duel">⚔️ Duel Mode</button>
+  <button class="tab-btn" data-tab="coop">🤝 Co-Op</button>
   <button class="tab-btn" data-tab="wtp">Who's That Pokémon?</button>
 </nav>
 
@@ -436,6 +449,38 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
     <div class="duel-finish-invite" id="duel-finish-invite">
       <span>Your opponent wants to finish!</span>
       <button class="btn danger" id="duel-accept-finish">Finish</button>
+    </div>
+  </div>
+  <div class="btn-row" id="coop-settings-bar" style="display:none;justify-content:center;">
+    <div class="settings-wrap">
+      <button class="btn" id="btn-coop-settings" title="Settings">⚙️ Settings</button>
+      <div class="settings-panel" id="coop-settings-panel">
+        <div class="setting-row" id="cset-sound"><span class="setting-label">Sound (Cries)</span><div class="toggle-switch on" id="ctog-sound"></div></div>
+        <div class="setting-row" id="cset-cycle"><span class="setting-label">Cycle Forms</span><div class="toggle-switch on" id="ctog-cycle"></div></div>
+        <div class="setting-row" id="cset-scroll"><span class="setting-label">Auto-scroll</span><div class="toggle-switch on" id="ctog-scroll"></div></div>
+        <div class="settings-divider"></div>
+        <div class="settings-section-label">Theme</div>
+        <div class="setting-row-slider">
+          <div class="mode-slider" id="coop-theme-slider">
+            <button id="cbtn-dark" class="active">🌙 Dark</button>
+            <button id="cbtn-light">☀️ Light</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="coop-sticky" id="coop-sticky" style="display:none;">
+    <div class="coop-score" id="coop-score-bar">
+      <span class="cs-team">🤝 Team: <span id="cs-found-count">0</span> / <span id="cs-total-count">0</span></span>
+      <span class="cs-neutral">Remaining: <span id="cs-remaining-count">0</span></span>
+    </div>
+    <div class="duel-finish-bar" id="coop-finish-bar">
+      <button class="btn danger" id="coop-finish-btn">Finish</button>
+      <span class="duel-finish-status" id="coop-finish-status"></span>
+    </div>
+    <div class="duel-finish-invite" id="coop-finish-invite">
+      <span>Your partner wants to finish!</span>
+      <button class="btn danger" id="coop-accept-finish">Finish</button>
     </div>
   </div>
 </header>
@@ -1830,6 +1875,396 @@ const Q = (function() {
     if (st) st.textContent = msg;
   }
 
+  // ── Co-Op Mode ──
+
+  let coopActive = false;
+  let coopPeer = null;
+  let coopConn = null;
+  let coopRole = null;
+  let coopRevealed = new Set();
+  let coopFinishMe = false;
+  let coopFinishOpponent = false;
+  var coopSettings = { shadows: false, orderMode: 'dex-gens' };
+  var coopConnTimeout = null;
+
+  function coopGenId() {
+    return 'nea-c-' + Math.random().toString(36).substr(2, 8);
+  }
+
+  function coopCleanup() {
+    coopActive = false;
+    coopFinishMe = false;
+    coopFinishOpponent = false;
+    if (coopConnTimeout) { clearTimeout(coopConnTimeout); coopConnTimeout = null; }
+    if (coopConn) { try { coopConn.close(); } catch(e){} coopConn = null; }
+    if (coopPeer) { try { coopPeer.destroy(); } catch(e){} coopPeer = null; }
+    coopRole = null;
+  }
+
+  function coopShowLobby() {
+    $input.style.display = 'none';
+    const wrap = $('grid-wrap');
+    const params = new URLSearchParams(window.location.search);
+    const joinId = params.get('coop');
+
+    if (joinId) {
+      wrap.innerHTML = '<div class="duel-lobby"><h2>🤝 Co-Op Mode</h2><p>Connecting to host…</p><div class="duel-status" id="coop-status">Establishing connection…</div></div>';
+      coopJoin(joinId);
+    } else {
+      wrap.innerHTML = '<div class="duel-lobby"><h2>🤝 Co-Op Mode</h2>' +
+        '<p>Team up with a friend! Complete the Pokédex together.</p>' +
+        '<div class="duel-settings">' +
+          '<div class="ds-title">Room Settings</div>' +
+          '<div class="ds-row"><span class="ds-label">Shadows</span><div class="toggle-switch' + (coopSettings.shadows ? ' on' : '') + '" id="cs-tog-shadows"></div></div>' +
+          '<div class="ds-divider"></div>' +
+          '<div class="ds-row"><span class="ds-label">Order By</span>' +
+            '<div class="ds-order-btns" id="cs-order-btns">' +
+              '<button data-mode="dex-gens"' + (coopSettings.orderMode === 'dex-gens' ? ' class="active"' : '') + '>Dex + Gens</button>' +
+              '<button data-mode="dex"' + (coopSettings.orderMode === 'dex' ? ' class="active"' : '') + '>Dex Order</button>' +
+              '<button data-mode="random"' + (coopSettings.orderMode === 'random' ? ' class="active"' : '') + '>Random</button>' +
+            '</div></div>' +
+        '</div>' +
+        '<button class="btn" id="coop-create-btn" style="font-size:0.9rem;padding:10px 28px;margin-top:10px;">Create Room</button>' +
+        '<div id="coop-link-area"></div>' +
+        '<div class="duel-status" id="coop-status"></div></div>';
+
+      $('cs-tog-shadows').addEventListener('click', function() {
+        coopSettings.shadows = !coopSettings.shadows;
+        this.classList.toggle('on', coopSettings.shadows);
+      });
+      $('cs-order-btns').addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        coopSettings.orderMode = btn.dataset.mode;
+        this.querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b === btn); });
+      });
+      $('coop-create-btn').addEventListener('click', coopCreate);
+    }
+  }
+
+  function coopCreate() {
+    const roomId = coopGenId();
+    coopRole = 'host';
+    $('coop-create-btn').disabled = true;
+    $('coop-create-btn').textContent = 'Creating…';
+    $('coop-status').textContent = 'Connecting to signaling server…';
+
+    coopPeer = new Peer(roomId, { config: duelIceConfig });
+    coopPeer.on('open', function(id) {
+      const link = window.location.origin + window.location.pathname + '?coop=' + id;
+      $('coop-link-area').innerHTML =
+        '<p style="margin-top:14px;font-size:0.8rem;color:var(--text-dim)">Share this link with your partner:</p>' +
+        '<div class="duel-link-box">' +
+        '<input type="text" id="coop-link-input" value="' + link + '" readonly>' +
+        '<button class="btn" id="coop-copy-btn">Copy</button></div>';
+      $('coop-create-btn').style.display = 'none';
+      $('coop-status').textContent = 'Room ready! Waiting for partner to join…';
+      $('coop-copy-btn').addEventListener('click', function() {
+        navigator.clipboard.writeText(link).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 1500); });
+      });
+    });
+    coopPeer.on('connection', function(conn) {
+      coopConn = conn;
+      $('coop-status').textContent = 'Partner found! Establishing connection…';
+      coopConnTimeout = setTimeout(function() {
+        if (!coopActive) $('coop-status').textContent = 'Connection is taking long… If it doesn\'t connect, both players try refreshing.';
+      }, 15000);
+      coopConn.on('open', function() {
+        clearTimeout(coopConnTimeout);
+        $('coop-status').textContent = 'Connected! Starting game…';
+        const cached = dataSources['pokemon'];
+        if (cached) { coopStart(cached); }
+        else {
+          fetch('pokemon.json').then(r => r.json()).then(data => { dataSources['pokemon'] = data; coopStart(data); });
+        }
+      });
+      coopConn.on('data', coopOnMessage);
+      coopConn.on('close', function() {
+        clearTimeout(coopConnTimeout);
+        if (coopActive) { coopActive = false; coopShowStatus('Partner disconnected.'); }
+      });
+      coopConn.on('error', function(err) {
+        clearTimeout(coopConnTimeout);
+        $('coop-status').textContent = 'Data connection error. Try refreshing.';
+      });
+    });
+    coopPeer.on('error', function(err) {
+      clearTimeout(coopConnTimeout);
+      $('coop-status').textContent = 'Error: ' + err.type + ' — ' + (err.message || 'Try refreshing.');
+      $('coop-create-btn').style.display = '';
+      $('coop-create-btn').disabled = false;
+      $('coop-create-btn').textContent = 'Create Room';
+    });
+    coopPeer.on('disconnected', function() {
+      if (!coopActive) {
+        $('coop-status').textContent = 'Lost connection to server. Reconnecting…';
+        try { coopPeer.reconnect(); } catch(e) {}
+      }
+    });
+  }
+
+  function coopJoin(hostId) {
+    coopRole = 'guest';
+    $('coop-status').textContent = 'Connecting to signaling server…';
+    coopPeer = new Peer({ config: duelIceConfig });
+    coopPeer.on('open', function() {
+      $('coop-status').textContent = 'Connected to server. Reaching host…';
+      coopConn = coopPeer.connect(hostId, { reliable: true });
+      coopConnTimeout = setTimeout(function() {
+        if (!coopActive) $('coop-status').textContent = 'Connection is taking long… If it doesn\'t connect, both players try refreshing.';
+      }, 15000);
+      coopConn.on('open', function() {
+        clearTimeout(coopConnTimeout);
+        $('coop-status').textContent = 'Connected! Waiting for game to start…';
+        coopConn.send({ type: 'join' });
+      });
+      coopConn.on('data', coopOnMessage);
+      coopConn.on('close', function() {
+        clearTimeout(coopConnTimeout);
+        if (coopActive) { coopActive = false; coopShowStatus('Host disconnected.'); }
+      });
+      coopConn.on('error', function(err) {
+        clearTimeout(coopConnTimeout);
+        $('coop-status').textContent = 'Data connection error. Try refreshing.';
+      });
+    });
+    coopPeer.on('error', function(err) {
+      clearTimeout(coopConnTimeout);
+      $('coop-status').textContent = 'Error: ' + err.type + ' — ' + (err.message || 'Try refreshing.');
+    });
+    coopPeer.on('disconnected', function() {
+      if (!coopActive) {
+        $('coop-status').textContent = 'Lost connection to server. Reconnecting…';
+        try { coopPeer.reconnect(); } catch(e) {}
+      }
+    });
+  }
+
+  function coopStart(data) {
+    items = data;
+    coopActive = true;
+    coopRevealed = new Set();
+    coopFinishMe = false;
+    coopFinishOpponent = false;
+    foundSet = new Set();
+    elapsedMs = 0;
+    buildIndex();
+
+    if (coopRole === 'host') {
+      shadowsEnabled = coopSettings.shadows;
+      displayOrder = items.map((_, i) => i);
+      if (coopSettings.orderMode === 'random') {
+        for (var i = displayOrder.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = displayOrder[i]; displayOrder[i] = displayOrder[j]; displayOrder[j] = t;
+        }
+      }
+      coopConn.send({ type: 'start', shadows: coopSettings.shadows, orderMode: coopSettings.orderMode, order: displayOrder });
+    }
+
+    $('coop-settings-bar').style.display = 'flex';
+
+    $input.style.display = '';
+    $input.value = '';
+    $input.disabled = false;
+    $input.placeholder = 'Type a Pokémon name…';
+    $timer.textContent = '00:00';
+    $foundCount.textContent = '0';
+    $('total-count').textContent = items.length;
+
+    coopRenderGrid();
+    coopUpdateScore();
+    startTimer();
+    $input.focus();
+
+    if (window.history.replaceState) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }
+
+  function coopRenderGrid() {
+    const wrap = $('grid-wrap');
+    wrap.innerHTML = '';
+    wrap.classList.toggle('shadows-on', shadowsEnabled);
+
+    $('coop-sticky').style.display = '';
+    $('cs-total-count').textContent = items.length;
+    $('cs-found-count').textContent = '0';
+    $('cs-remaining-count').textContent = items.length;
+    $('coop-finish-bar').innerHTML = '<button class="btn danger" id="coop-finish-btn">Finish</button>' +
+      '<span class="duel-finish-status" id="coop-finish-status"></span>';
+    $('coop-finish-invite').classList.remove('show');
+    $('coop-finish-btn').addEventListener('click', coopFinish);
+    $('coop-accept-finish').addEventListener('click', coopFinish);
+
+    if (coopSettings.orderMode === 'dex-gens') {
+      var groups = {};
+      for (var i = 0; i < displayOrder.length; i++) {
+        var idx = displayOrder[i], r = items[idx].g;
+        (groups[r] || (groups[r] = [])).push(idx);
+      }
+      for (var ri = 0; ri < REGION_ORDER.length; ri++) {
+        var region = REGION_ORDER[ri];
+        var list = groups[region];
+        if (!list || !list.length) continue;
+        var sec = document.createElement('div');
+        sec.className = 'region-section';
+        sec.id = 'rs-' + region;
+        var hdr = document.createElement('div');
+        hdr.className = 'region-header';
+        hdr.innerHTML = region + ' (Gen ' + REGION_GEN[region] + ') <span class="region-count" id="rc-' + region + '">0/' + list.length + '</span>';
+        sec.appendChild(hdr);
+        var grid = document.createElement('div');
+        grid.className = 'region-grid';
+        for (var li = 0; li < list.length; li++) grid.appendChild(makeCard(list[li]));
+        sec.appendChild(grid);
+        wrap.appendChild(sec);
+      }
+    } else {
+      var grid = document.createElement('div');
+      grid.className = 'region-grid';
+      for (var i = 0; i < displayOrder.length; i++) grid.appendChild(makeCard(displayOrder[i]));
+      wrap.appendChild(grid);
+    }
+  }
+
+  function coopUpdateScore() {
+    var count = coopRevealed.size;
+    var el;
+    el = $('cs-found-count'); if (el) el.textContent = count;
+    el = $('cs-remaining-count'); if (el) el.textContent = items.length - count;
+    $foundCount.textContent = count;
+    if (coopSettings.orderMode === 'dex-gens') {
+      var regionCounts = {};
+      coopRevealed.forEach(function(i) { var r = items[i].g; regionCounts[r] = (regionCounts[r] || 0) + 1; });
+      for (var ri = 0; ri < REGION_ORDER.length; ri++) {
+        var rc_el = $('rc-' + REGION_ORDER[ri]);
+        if (rc_el) rc_el.textContent = (regionCounts[REGION_ORDER[ri]] || 0) + '/' + rc_el.textContent.split('/')[1];
+      }
+    }
+  }
+
+  function coopRevealCard(idx) {
+    const c = $('c' + idx);
+    if (!c) return;
+    const w = items[idx];
+    c.className = 'card coop-found';
+    c.querySelector('.poke-sprite').src = w.s;
+    c.querySelector('.poke-name').textContent = w.n;
+    c.querySelector('.poke-gen').textContent = w.g;
+  }
+
+  function coopHandleInput(val) {
+    if (!coopActive) return;
+    const matches = findAllMatches(val);
+    if (matches.length > 0) {
+      var newReveals = [];
+      for (const idx of matches) {
+        if (coopRevealed.has(idx)) continue;
+        coopRevealed.add(idx);
+        coopRevealCard(idx);
+        newReveals.push(idx);
+      }
+      if (newReveals.length > 0) {
+        coopConn.send({ type: 'reveal', indices: newReveals });
+        if (soundEnabled) playCry(items[newReveals[0]].id);
+        coopUpdateScore();
+        flashInput();
+        $input.value = '';
+        if (autoScrollEnabled) setTimeout(function() {
+          var card = $('c' + newReveals[0]);
+          if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
+        if (coopRevealed.size === items.length) { stopTimer(); coopEnd(); }
+      }
+    }
+  }
+
+  function coopOnMessage(msg) {
+    if (msg.type === 'start') {
+      coopSettings.shadows = msg.shadows;
+      coopSettings.orderMode = msg.orderMode;
+      shadowsEnabled = msg.shadows;
+      var receivedOrder = msg.order;
+      if (coopRole === 'guest') {
+        const cached = dataSources['pokemon'];
+        var startWithOrder = function(d) {
+          dataSources['pokemon'] = d;
+          displayOrder = receivedOrder;
+          coopStart(d);
+        };
+        if (cached) { startWithOrder(cached); }
+        else {
+          fetch('pokemon.json').then(function(r) { return r.json(); }).then(startWithOrder);
+        }
+      }
+    } else if (msg.type === 'reveal') {
+      for (const idx of msg.indices) {
+        if (!coopRevealed.has(idx)) {
+          coopRevealed.add(idx);
+          coopRevealCard(idx);
+        }
+      }
+      coopUpdateScore();
+      if (coopRevealed.size === items.length) { stopTimer(); coopEnd(); }
+    } else if (msg.type === 'finish') {
+      coopFinishOpponent = true;
+      if (coopFinishMe) { coopEnd(); return; }
+      var invite = $('coop-finish-invite');
+      if (invite) invite.classList.add('show');
+    } else if (msg.type === 'end') {
+      coopEnd();
+    } else if (msg.type === 'join') {
+      // guest joined
+    }
+  }
+
+  function coopFinish() {
+    if (coopFinishMe) return;
+    coopFinishMe = true;
+    coopConn.send({ type: 'finish' });
+    var st = $('coop-finish-status');
+    if (st) st.textContent = 'Waiting for partner…';
+    var btn = $('coop-finish-btn');
+    if (btn) btn.disabled = true;
+    var invite = $('coop-finish-invite');
+    if (invite) invite.classList.remove('show');
+    if (coopFinishOpponent) coopEnd();
+  }
+
+  function coopEnd() {
+    coopActive = false;
+    stopTimer();
+    $input.disabled = true;
+    var invite = $('coop-finish-invite');
+    if (invite) invite.classList.remove('show');
+    for (var i = 0; i < items.length; i++) {
+      var c = $('c' + i);
+      if (!c) continue;
+      var w = items[i];
+      if (!coopRevealed.has(i)) {
+        var sp = c.querySelector('.poke-sprite');
+        if (sp) sp.src = w.s;
+        var nm = c.querySelector('.poke-name');
+        if (nm) nm.textContent = w.n;
+        var gn = c.querySelector('.poke-gen');
+        if (gn) gn.textContent = w.g;
+        c.className = 'card missed';
+      }
+    }
+    coopUpdateScore();
+    var count = coopRevealed.size;
+    var total = items.length;
+    var pct = Math.round(count / total * 100);
+    $('coop-finish-bar').innerHTML = '<div style="font-size:1rem;font-weight:800;color:var(--text);">🤝 Team Result: ' +
+      count + '/' + total + ' (' + pct + '%) in ' + fmtTime(elapsedMs) + '</div>';
+  }
+
+  function coopShowStatus(msg) {
+    var st = $('coop-status');
+    if (st) st.textContent = msg;
+  }
+
   // ── Tab switching ──
 
   function switchTab(tab) {
@@ -1837,42 +2272,47 @@ const Q = (function() {
     stopTimer(); timerRunning = false; givenUp = false;
     if (typeof paused !== 'undefined' && paused) { paused = false; $('pause-overlay').classList.remove('active'); $('btn-pause').textContent = '⏸ Pause'; }
     if (currentTab === 'duel') duelCleanup();
+    if (currentTab === 'coop') coopCleanup();
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
 
     const isPoke = tab === 'pokemon';
     const isWtp = tab === 'wtp';
     const isDuel = tab === 'duel';
-    const subtitles = { pokemon: 'Regular Mode', wtp: "Who's That Pokémon?", duel: '⚔️ Duel Mode' };
+    const isCoop = tab === 'coop';
+    const isMulti = isDuel || isCoop;
+    const subtitles = { pokemon: 'Regular Mode', wtp: "Who's That Pokémon?", duel: '⚔️ Duel Mode', coop: '🤝 Co-Op Mode' };
     $('subtitle').textContent = subtitles[tab] || tab;
     $input.placeholder = isWtp ? 'Type the Pokémon name…' : 'Type a Pokémon name…';
     if (!isPoke) stopCycleForms();
-    $('set-order-section').style.display = isDuel ? 'none' : '';
-    $('set-sound').style.display = (isPoke || isWtp) ? '' : 'none';
+    $('set-order-section').style.display = isMulti ? 'none' : '';
+    $('set-sound').style.display = (isPoke || isWtp || isCoop) ? '' : 'none';
     $('set-shadows').style.display = isPoke ? '' : 'none';
-    $('set-cycle').style.display = isPoke ? '' : 'none';
-    $('set-scroll').style.display = isDuel ? 'none' : '';
-    $('set-typebg').style.display = isDuel ? 'none' : '';
+    $('set-cycle').style.display = (isPoke || isCoop) ? '' : 'none';
+    $('set-scroll').style.display = isMulti ? 'none' : '';
+    $('set-typebg').style.display = isMulti ? 'none' : '';
 
-    $('action-bar').style.display = (isWtp || isDuel) ? 'none' : '';
+    $('action-bar').style.display = (isWtp || isMulti) ? 'none' : '';
     $('btn-duel-link').style.display = isPoke ? '' : 'none';
     $('sep-duel-link').style.display = isPoke ? '' : 'none';
     $('duel-settings-bar').style.display = 'none';
     $('duel-sticky').style.display = 'none';
-    $('btn-history').style.display = isDuel ? 'none' : '';
-    $('best-display').style.display = isDuel ? 'none' : '';
+    $('coop-settings-bar').style.display = 'none';
+    $('coop-sticky').style.display = 'none';
+    $('btn-history').style.display = isMulti ? 'none' : '';
+    $('best-display').style.display = isMulti ? 'none' : '';
 
-    if ((isPoke || isWtp || isDuel) && !pokeFamilies) {
+    if ((isPoke || isWtp || isMulti) && !pokeFamilies) {
       fetch('families.json').then(r => r.json()).then(fams => {
         pokeFamilies = fams;
         pokeFamilyMap = {};
         fams.forEach((fam, i) => fam.forEach(pid => { pokeFamilyMap[pid] = i; }));
       }).catch(() => {});
     }
-    if ((isPoke || isDuel) && !pokeForms) {
+    if ((isPoke || isMulti) && !pokeForms) {
       fetch('pokemon_forms.json').then(r => r.json()).then(data => { pokeForms = data; refreshTypeBgs(); }).catch(() => {});
     }
-    if ((isPoke || isWtp || isDuel) && !pokeDetails) {
+    if ((isPoke || isWtp || isMulti) && !pokeDetails) {
       fetch('pokemon_details.json').then(r => r.json()).then(data => {
         pokeDetails = data;
         if (isPoke) refreshTypeBgs();
@@ -1881,6 +2321,11 @@ const Q = (function() {
 
     if (isDuel) {
       duelShowLobby();
+      return;
+    }
+
+    if (isCoop) {
+      coopShowLobby();
       return;
     }
 
@@ -1953,6 +2398,11 @@ const Q = (function() {
       return;
     }
 
+    if (currentTab === 'coop') {
+      coopHandleInput(val);
+      return;
+    }
+
     const matches = findAllMatches(val);
     if (matches.length > 0) {
       for (const idx of matches) { foundSet.add(idx); revealCard(idx, false); toast(items[idx]); }
@@ -2018,30 +2468,41 @@ const Q = (function() {
     e.stopPropagation();
     $('settings-panel').classList.toggle('open');
     $('duel-settings-panel').classList.remove('open');
+    $('coop-settings-panel').classList.remove('open');
   });
   $('btn-duel-settings').addEventListener('click', function(e) {
     e.stopPropagation();
     $('duel-settings-panel').classList.toggle('open');
     $('settings-panel').classList.remove('open');
+    $('coop-settings-panel').classList.remove('open');
+  });
+  $('btn-coop-settings').addEventListener('click', function(e) {
+    e.stopPropagation();
+    $('coop-settings-panel').classList.toggle('open');
+    $('settings-panel').classList.remove('open');
+    $('duel-settings-panel').classList.remove('open');
   });
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.settings-wrap')) {
       $('settings-panel').classList.remove('open');
       $('duel-settings-panel').classList.remove('open');
+      $('coop-settings-panel').classList.remove('open');
     }
   });
 
-  $('set-sound').addEventListener('click', function() {
-    soundEnabled = !soundEnabled;
+  function syncSoundToggles() {
     $('tog-sound').classList.toggle('on', soundEnabled);
     $('dtog-sound').classList.toggle('on', soundEnabled);
-    saveSettings();
+    $('ctog-sound').classList.toggle('on', soundEnabled);
+  }
+  $('set-sound').addEventListener('click', function() {
+    soundEnabled = !soundEnabled; syncSoundToggles(); saveSettings();
   });
   $('dset-sound').addEventListener('click', function() {
-    soundEnabled = !soundEnabled;
-    $('tog-sound').classList.toggle('on', soundEnabled);
-    $('dtog-sound').classList.toggle('on', soundEnabled);
-    saveSettings();
+    soundEnabled = !soundEnabled; syncSoundToggles(); saveSettings();
+  });
+  $('cset-sound').addEventListener('click', function() {
+    soundEnabled = !soundEnabled; syncSoundToggles(); saveSettings();
   });
 
   $('set-shadows').addEventListener('click', function() {
@@ -2051,32 +2512,40 @@ const Q = (function() {
     saveSettings();
   });
 
-  $('set-cycle').addEventListener('click', function() {
-    cycleFormsEnabled = !cycleFormsEnabled;
+  function syncCycleToggles() {
     $('tog-cycle').classList.toggle('on', cycleFormsEnabled);
     $('dtog-cycle').classList.toggle('on', cycleFormsEnabled);
+    $('ctog-cycle').classList.toggle('on', cycleFormsEnabled);
+  }
+  $('set-cycle').addEventListener('click', function() {
+    cycleFormsEnabled = !cycleFormsEnabled; syncCycleToggles();
     if (cycleFormsEnabled) startCycleForms(); else stopCycleForms();
     saveSettings();
   });
   $('dset-cycle').addEventListener('click', function() {
-    cycleFormsEnabled = !cycleFormsEnabled;
-    $('tog-cycle').classList.toggle('on', cycleFormsEnabled);
-    $('dtog-cycle').classList.toggle('on', cycleFormsEnabled);
+    cycleFormsEnabled = !cycleFormsEnabled; syncCycleToggles();
+    if (cycleFormsEnabled) startCycleForms(); else stopCycleForms();
+    saveSettings();
+  });
+  $('cset-cycle').addEventListener('click', function() {
+    cycleFormsEnabled = !cycleFormsEnabled; syncCycleToggles();
     if (cycleFormsEnabled) startCycleForms(); else stopCycleForms();
     saveSettings();
   });
 
-  $('set-scroll').addEventListener('click', function() {
-    autoScrollEnabled = !autoScrollEnabled;
+  function syncScrollToggles() {
     $('tog-scroll').classList.toggle('on', autoScrollEnabled);
     $('dtog-scroll').classList.toggle('on', autoScrollEnabled);
-    saveSettings();
+    $('ctog-scroll').classList.toggle('on', autoScrollEnabled);
+  }
+  $('set-scroll').addEventListener('click', function() {
+    autoScrollEnabled = !autoScrollEnabled; syncScrollToggles(); saveSettings();
   });
   $('dset-scroll').addEventListener('click', function() {
-    autoScrollEnabled = !autoScrollEnabled;
-    $('tog-scroll').classList.toggle('on', autoScrollEnabled);
-    $('dtog-scroll').classList.toggle('on', autoScrollEnabled);
-    saveSettings();
+    autoScrollEnabled = !autoScrollEnabled; syncScrollToggles(); saveSettings();
+  });
+  $('cset-scroll').addEventListener('click', function() {
+    autoScrollEnabled = !autoScrollEnabled; syncScrollToggles(); saveSettings();
   });
 
   $('set-typebg').addEventListener('click', function() {
@@ -2092,19 +2561,20 @@ const Q = (function() {
     $('btn-light').classList.toggle('active', mode === 'light');
     $('dbtn-dark').classList.toggle('active', mode === 'dark');
     $('dbtn-light').classList.toggle('active', mode === 'light');
+    $('cbtn-dark').classList.toggle('active', mode === 'dark');
+    $('cbtn-light').classList.toggle('active', mode === 'light');
     localStorage.setItem('namemall_theme', mode);
   }
   $('btn-dark').addEventListener('click', function() { setTheme('dark'); });
   $('btn-light').addEventListener('click', function() { setTheme('light'); });
   $('dbtn-dark').addEventListener('click', function() { setTheme('dark'); });
   $('dbtn-light').addEventListener('click', function() { setTheme('light'); });
-  $('tog-sound').classList.toggle('on', soundEnabled);
-  $('dtog-sound').classList.toggle('on', soundEnabled);
+  $('cbtn-dark').addEventListener('click', function() { setTheme('dark'); });
+  $('cbtn-light').addEventListener('click', function() { setTheme('light'); });
+  syncSoundToggles();
   $('tog-shadows').classList.toggle('on', shadowsEnabled);
-  $('tog-cycle').classList.toggle('on', cycleFormsEnabled);
-  $('dtog-cycle').classList.toggle('on', cycleFormsEnabled);
-  $('tog-scroll').classList.toggle('on', autoScrollEnabled);
-  $('dtog-scroll').classList.toggle('on', autoScrollEnabled);
+  syncCycleToggles();
+  syncScrollToggles();
   $('tog-typebg').classList.toggle('on', typeBgEnabled);
   $('mode-slider').querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b.dataset.order === orderMode); });
 
@@ -2114,6 +2584,8 @@ const Q = (function() {
     $('btn-dark').classList.remove('active');
     $('dbtn-light').classList.add('active');
     $('dbtn-dark').classList.remove('active');
+    $('cbtn-light').classList.add('active');
+    $('cbtn-dark').classList.remove('active');
   }
 
   $('btn-history').addEventListener('click', openScoreboard);
@@ -2133,6 +2605,8 @@ const Q = (function() {
   var urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('duel')) {
     switchTab('duel');
+  } else if (urlParams.get('coop')) {
+    switchTab('coop');
   } else {
     switchTab('pokemon');
   }
