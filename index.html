@@ -830,13 +830,25 @@ const Q = (function() {
 
   function showPopup(card, w) {
     const id = w.id;
-    $('pp-sprite').src = w.s;
-    $('pp-name').textContent = w.n;
+    const fi = parseInt(card.dataset.formIdx || '0') || 0;
+    const form = pokeForms && pokeForms[String(id)] ? pokeForms[String(id)][fi] : null;
+    const formLabel = form && form.l !== 'Normal' ? form.l : '';
+    const formSprite = form && form.s ? form.s : w.s;
+    const formTypes = form && form.t && form.t.length ? form.t : null;
+
+    $('pp-sprite').src = formSprite;
+    $('pp-name').textContent = formLabel ? w.n + ' (' + formLabel + ')' : w.n;
     $('pp-id').textContent = '#' + String(id).padStart(4, '0');
     $('pp-region').textContent = w.g;
     $('pp-types').innerHTML = '';
     $('pp-stats').innerHTML = '';
     $('pp-flavor').textContent = 'Loading…';
+
+    if (formTypes) {
+      $('pp-types').innerHTML = formTypes.map(t =>
+        '<span class="pp-type" style="background:' + (TYPE_COLORS[t] || '#888') + '">' + t + '</span>'
+      ).join('');
+    }
 
     const rect = card.getBoundingClientRect();
     let left = rect.right + 12;
@@ -853,11 +865,11 @@ const Q = (function() {
       if (!$popup.classList.contains('active')) return;
       if (!d) { $('pp-flavor').textContent = 'Could not load details.'; return; }
 
-      if (d.sprite) $('pp-sprite').src = d.sprite;
-
-      $('pp-types').innerHTML = d.types.map(t =>
-        '<span class="pp-type" style="background:' + (TYPE_COLORS[t] || '#888') + '">' + t + '</span>'
-      ).join('');
+      if (!formTypes) {
+        $('pp-types').innerHTML = d.types.map(t =>
+          '<span class="pp-type" style="background:' + (TYPE_COLORS[t] || '#888') + '">' + t + '</span>'
+        ).join('');
+      }
 
       $('pp-stats').innerHTML =
         '<dt>Height</dt><dd>' + d.height + '</dd>' +
