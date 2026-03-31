@@ -310,6 +310,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .duel-link-box input { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 10px; font-size: 0.8rem; }
 .duel-link-box .btn { flex-shrink: 0; }
 .duel-status { color: var(--text-pinyin); font-size: 0.85rem; margin-top: 12px; }
+.duel-sticky { position: sticky; top: 0; z-index: 90; background: var(--bg); padding: 6px 0 4px; border-bottom: 1px solid var(--border); }
 .duel-score { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .duel-score .ds-blue { color: #60a5fa; }
 .duel-score .ds-red { color: #f87171; }
@@ -332,14 +333,19 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .duel-finish-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 4px 0 6px; }
 .duel-finish-bar .btn { min-width: 100px; }
 .duel-finish-status { font-size: 0.72rem; color: var(--text-dim); }
+.duel-finish-invite { display: none; background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); border-radius: 8px; padding: 8px 14px; margin: 4px 0 0; text-align: center; animation: duel-invite-pulse 2s ease-in-out infinite; }
+.duel-finish-invite.show { display: block; }
+.duel-finish-invite span { font-size: 0.78rem; color: var(--text); font-weight: 600; }
+.duel-finish-invite button { margin-left: 10px; font-size: 0.7rem; padding: 4px 14px; }
+@keyframes duel-invite-pulse { 0%, 100% { border-color: rgba(248,113,113,0.4); } 50% { border-color: rgba(248,113,113,0.8); } }
 </style>
 </head>
 <body>
 
 <nav class="tab-bar">
   <button class="tab-btn active" data-tab="pokemon">Pokémon Quiz</button>
-  <button class="tab-btn" data-tab="wtp">Who's That Pokémon?</button>
   <button class="tab-btn" data-tab="duel">⚔️ Duel Mode</button>
+  <button class="tab-btn" data-tab="wtp">Who's That Pokémon?</button>
 </nav>
 
 <header>
@@ -359,6 +365,8 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
     <button class="btn danger" id="btn-give-up">Give Up</button>
     <button class="btn" id="btn-reset">Reset</button>
     <div class="btn-sep"></div>
+    <button class="btn" id="btn-duel-link" style="display:none;">⚔️ Duel Mode</button>
+    <div class="btn-sep" id="sep-duel-link" style="display:none;"></div>
     <div class="settings-wrap">
       <button class="btn" id="btn-settings" title="Settings">⚙️ Settings</button>
       <div class="settings-panel" id="settings-panel">
@@ -1517,20 +1525,32 @@ const Q = (function() {
     wrap.innerHTML = '';
     wrap.classList.toggle('shadows-on', shadowsEnabled);
 
+    const stickyWrap = document.createElement('div');
+    stickyWrap.className = 'duel-sticky';
+    stickyWrap.id = 'duel-sticky';
+
     const scoreBar = document.createElement('div');
     scoreBar.className = 'duel-score';
     scoreBar.id = 'duel-score-bar';
     scoreBar.innerHTML = '<span class="ds-blue">🔵 Blue: <span id="ds-blue-count">0</span></span>' +
       '<span class="ds-neutral">Remaining: <span id="ds-neutral-count">' + items.length + '</span></span>' +
       '<span class="ds-red">🔴 Red: <span id="ds-red-count">0</span></span>';
-    wrap.appendChild(scoreBar);
+    stickyWrap.appendChild(scoreBar);
 
     const finishBar = document.createElement('div');
     finishBar.className = 'duel-finish-bar';
     finishBar.id = 'duel-finish-bar';
     finishBar.innerHTML = '<button class="btn danger" id="duel-finish-btn">Finish</button>' +
       '<span class="duel-finish-status" id="duel-finish-status"></span>';
-    wrap.appendChild(finishBar);
+    stickyWrap.appendChild(finishBar);
+
+    const invite = document.createElement('div');
+    invite.className = 'duel-finish-invite';
+    invite.id = 'duel-finish-invite';
+    invite.innerHTML = '<span>Your opponent wants to finish!</span>' +
+      '<button class="btn danger" id="duel-accept-finish">Finish</button>';
+    stickyWrap.appendChild(invite);
+    wrap.appendChild(stickyWrap);
 
     if (duelSettings.orderMode === 'dex-gens') {
       var groups = {};
@@ -1563,6 +1583,7 @@ const Q = (function() {
     }
 
     $('duel-finish-btn').addEventListener('click', duelFinish);
+    $('duel-accept-finish').addEventListener('click', duelFinish);
   }
 
   function duelUpdateScore() {
@@ -1658,9 +1679,9 @@ const Q = (function() {
       duelUpdateScore();
     } else if (msg.type === 'finish') {
       duelFinishOpponent = true;
-      var st = $('duel-finish-status');
-      if (st) st.textContent = 'Opponent wants to finish…';
-      if (duelFinishMe) duelEnd();
+      if (duelFinishMe) { duelEnd(); return; }
+      var invite = $('duel-finish-invite');
+      if (invite) invite.classList.add('show');
     } else if (msg.type === 'end') {
       duelEnd();
     } else if (msg.type === 'join') {
@@ -1670,12 +1691,14 @@ const Q = (function() {
 
   function duelFinish() {
     if (duelFinishMe) return;
-    if (!confirm('Finish the duel? Both players must agree.')) return;
     duelFinishMe = true;
     duelConn.send({ type: 'finish', player: duelRole });
     var st = $('duel-finish-status');
     if (st) st.textContent = 'Waiting for opponent…';
-    $('duel-finish-btn').disabled = true;
+    var btn = $('duel-finish-btn');
+    if (btn) btn.disabled = true;
+    var invite = $('duel-finish-invite');
+    if (invite) invite.classList.remove('show');
     if (duelFinishOpponent) duelEnd();
   }
 
@@ -1683,6 +1706,8 @@ const Q = (function() {
     duelActive = false;
     stopTimer();
     $input.disabled = true;
+    var invite = $('duel-finish-invite');
+    if (invite) invite.classList.remove('show');
     // Reveal all unclaimed cards
     for (var i = 0; i < items.length; i++) {
       var c = $('c' + i);
@@ -1742,6 +1767,8 @@ const Q = (function() {
     $('set-typebg').style.display = isDuel ? 'none' : '';
 
     $('action-bar').style.display = (isWtp || isDuel) ? 'none' : '';
+    $('btn-duel-link').style.display = isPoke ? '' : 'none';
+    $('sep-duel-link').style.display = isPoke ? '' : 'none';
     $('duel-settings-bar').style.display = 'none';
     $('btn-history').style.display = isDuel ? 'none' : '';
     $('best-display').style.display = isDuel ? 'none' : '';
@@ -1865,6 +1892,7 @@ const Q = (function() {
 
   $('btn-give-up').addEventListener('click', giveUp);
   $('btn-reset').addEventListener('click', reset);
+  $('btn-duel-link').addEventListener('click', function() { switchTab('duel'); });
   $('btn-shuffle').addEventListener('click', function() { if (!shuffleMode) shuffle(); });
   $('btn-order').addEventListener('click', function() { if (shuffleMode) order(); });
 
