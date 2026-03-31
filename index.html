@@ -313,9 +313,14 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .card.duel-claimed .poke-sprite { display: none; }
 .card.duel-claimed .poke-name { display: none; }
 .card.duel-claimed .poke-gen { display: none; }
-.duel-claimed-icon { font-size: 1.6rem; opacity: 0.5; }
+.card.duel-claimed .rank { display: none; }
+.card.duel-claimed.duel-blue { background: rgba(96,165,250,0.25); }
+.card.duel-claimed.duel-red { background: rgba(248,113,113,0.25); }
 .card.duel-mine .poke-placeholder { display: none; }
 .card.duel-mine .poke-shadow { display: none; }
+.card.duel-mine .poke-sprite { width: 56px; height: 56px; object-fit: contain; }
+.card.duel-mine .poke-name { font-size: 0.45rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 92%; text-align: center; }
+.card.duel-mine .poke-gen { font-size: 0.4rem; color: var(--text-dim); }
 .duel-finish-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 4px 0 6px; }
 .duel-finish-bar .btn { min-width: 100px; }
 .duel-finish-status { font-size: 0.72rem; color: var(--text-dim); }
@@ -1427,6 +1432,7 @@ const Q = (function() {
     if (duelRole === 'blue') {
       duelConn.send({ type: 'start', shadows: shadowsEnabled });
     }
+    $('set-shadows').style.display = (duelRole === 'blue') ? '' : 'none';
 
     $input.style.display = '';
     $input.value = '';
@@ -1502,17 +1508,6 @@ const Q = (function() {
     } else {
       if (c.classList.contains('duel-mine')) return;
       c.className = 'card duel-claimed ' + colorClass;
-      var icon = c.querySelector('.duel-claimed-icon');
-      if (!icon) {
-        icon = document.createElement('div');
-        icon.className = 'duel-claimed-icon';
-        c.appendChild(icon);
-      }
-      icon.textContent = owner === 'blue' ? '🔵' : '🔴';
-    }
-
-    if (typeBgEnabled) {
-      applyTypeBg(c, w);
     }
   }
 
@@ -1533,7 +1528,6 @@ const Q = (function() {
         newReveals.push(idx);
       }
       if (newReveals.length > 0) {
-        if (soundEnabled) playCry(items[matches[0]].id);
         duelConn.send({ type: 'reveal', indices: newReveals, player: duelRole });
         duelUpdateScore();
         flashInput();
@@ -1598,17 +1592,22 @@ const Q = (function() {
     $input.disabled = true;
     // Reveal all unclaimed cards
     for (var i = 0; i < items.length; i++) {
+      var c = $('c' + i);
+      if (!c) continue;
+      var w = items[i];
       if (!duelMyRevealed.has(i)) {
-        var c = $('c' + i);
-        if (!c) continue;
-        var w = items[i];
-        c.querySelector('.poke-sprite').src = w.s;
-        c.querySelector('.poke-name').textContent = w.n;
-        c.querySelector('.poke-gen').textContent = w.g;
-        if (!duelOwner[i]) {
+        var sp = c.querySelector('.poke-sprite');
+        if (sp) sp.src = w.s;
+        var nm = c.querySelector('.poke-name');
+        if (nm) nm.textContent = w.n;
+        var gn = c.querySelector('.poke-gen');
+        if (gn) gn.textContent = w.g;
+        if (duelOwner[i]) {
+          var col = duelOwner[i] === 'blue' ? 'duel-blue' : 'duel-red';
+          c.className = 'card duel-mine ' + col;
+        } else {
           c.className = 'card missed';
         }
-        if (typeBgEnabled) applyTypeBg(c, w);
       }
     }
     duelUpdateScore();
@@ -1642,9 +1641,10 @@ const Q = (function() {
     $('subtitle').textContent = subtitles[tab] || tab;
     $input.placeholder = isWtp ? 'Type the Pokémon name…' : 'Type a Pokémon name…';
     if (!isPoke) stopCycleForms();
-    $('set-sound').style.display = (isPoke || isWtp || isDuel) ? '' : 'none';
+    $('set-sound').style.display = (isPoke || isWtp) ? '' : 'none';
     $('set-shadows').style.display = (isPoke || isDuel) ? '' : 'none';
     $('set-cycle').style.display = isPoke ? '' : 'none';
+    $('set-typebg').style.display = isDuel ? 'none' : '';
 
     $('action-bar').style.display = (isWtp || isDuel) ? 'none' : '';
     $('btn-history').style.display = isDuel ? 'none' : '';
