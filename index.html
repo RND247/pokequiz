@@ -13,6 +13,7 @@
 <meta name="twitter:title" content="PokéQuiz">
 <meta name="twitter:description" content="Can you name all 1025 Pokémon? Test your knowledge!">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 :root {
   --bg: #0f0f1a;
@@ -291,6 +292,33 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
   .poke-popup { width: 260px; padding: 14px; }
   .poke-popup .pp-sprite { width: 72px; height: 72px; }
 }
+
+/* ── Duel Mode ── */
+.duel-lobby { text-align: center; padding: 40px 20px; max-width: 500px; margin: 0 auto; }
+.duel-lobby h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 8px; }
+.duel-lobby p { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 16px; }
+.duel-lobby .btn { margin: 6px; }
+.duel-link-box { display: flex; align-items: center; gap: 6px; margin: 16px auto; max-width: 400px; }
+.duel-link-box input { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 10px; font-size: 0.8rem; }
+.duel-link-box .btn { flex-shrink: 0; }
+.duel-status { color: var(--text-pinyin); font-size: 0.85rem; margin-top: 12px; }
+.duel-score { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.duel-score .ds-blue { color: #60a5fa; }
+.duel-score .ds-red { color: #f87171; }
+.duel-score .ds-neutral { color: var(--text-dim); }
+.card.duel-blue { border-color: #60a5fa; box-shadow: 0 0 6px rgba(96,165,250,0.3); }
+.card.duel-red { border-color: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.3); }
+.card.duel-claimed .poke-placeholder { display: none; }
+.card.duel-claimed .poke-shadow { display: none; }
+.card.duel-claimed .poke-sprite { display: none; }
+.card.duel-claimed .poke-name { display: none; }
+.card.duel-claimed .poke-gen { display: none; }
+.duel-claimed-icon { font-size: 1.6rem; opacity: 0.5; }
+.card.duel-mine .poke-placeholder { display: none; }
+.card.duel-mine .poke-shadow { display: none; }
+.duel-finish-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 4px 0 6px; }
+.duel-finish-bar .btn { min-width: 100px; }
+.duel-finish-status { font-size: 0.72rem; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -298,6 +326,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 <nav class="tab-bar">
   <button class="tab-btn active" data-tab="pokemon">Pokémon Quiz</button>
   <button class="tab-btn" data-tab="wtp">Who's That Pokémon?</button>
+  <button class="tab-btn" data-tab="duel">⚔️ Duel Mode</button>
 </nav>
 
 <header>
@@ -1275,41 +1304,372 @@ const Q = (function() {
     }
   }
 
+  // ── Duel Mode ──
+
+  let duelPeer = null;
+  let duelConn = null;
+  let duelRole = null; // 'blue' (host) or 'red' (guest)
+  let duelActive = false;
+  let duelBlue = new Set(); // indices revealed by blue
+  let duelRed = new Set(); // indices revealed by red
+  let duelMyRevealed = new Set(); // indices I've typed correctly
+  let duelOwner = {}; // idx -> 'blue'|'red' (first revealer)
+  let duelFinishMe = false;
+  let duelFinishOpponent = false;
+
+  function duelGenId() {
+    return 'pq-' + Math.random().toString(36).substr(2, 8);
+  }
+
+  function duelCleanup() {
+    duelActive = false;
+    duelFinishMe = false;
+    duelFinishOpponent = false;
+    if (duelConn) { try { duelConn.close(); } catch(e){} duelConn = null; }
+    if (duelPeer) { try { duelPeer.destroy(); } catch(e){} duelPeer = null; }
+    duelRole = null;
+  }
+
+  function duelShowLobby() {
+    $input.style.display = 'none';
+    const wrap = $('grid-wrap');
+    const params = new URLSearchParams(window.location.search);
+    const joinId = params.get('duel');
+
+    if (joinId) {
+      wrap.innerHTML = '<div class="duel-lobby"><h2>⚔️ Duel Mode</h2><p>Connecting to host…</p><div class="duel-status" id="duel-status">Establishing connection…</div></div>';
+      duelJoin(joinId);
+    } else {
+      wrap.innerHTML = '<div class="duel-lobby"><h2>⚔️ Duel Mode</h2>' +
+        '<p>Challenge a friend! One of you creates the duel, the other joins via link.</p>' +
+        '<button class="btn" id="duel-create-btn" style="font-size:0.9rem;padding:10px 28px;">Create Duel</button>' +
+        '<div id="duel-link-area"></div>' +
+        '<div class="duel-status" id="duel-status"></div></div>';
+      $('duel-create-btn').addEventListener('click', duelCreate);
+    }
+  }
+
+  function duelCreate() {
+    const roomId = duelGenId();
+    duelRole = 'blue';
+    $('duel-create-btn').disabled = true;
+    $('duel-create-btn').textContent = 'Creating…';
+    $('duel-status').textContent = 'Setting up…';
+
+    duelPeer = new Peer(roomId);
+    duelPeer.on('open', function(id) {
+      const link = window.location.origin + window.location.pathname + '?duel=' + id;
+      $('duel-link-area').innerHTML =
+        '<p style="margin-top:14px;font-size:0.8rem;color:var(--text-dim)">Share this link with your opponent:</p>' +
+        '<div class="duel-link-box">' +
+        '<input type="text" id="duel-link-input" value="' + link + '" readonly>' +
+        '<button class="btn" id="duel-copy-btn">Copy</button></div>';
+      $('duel-create-btn').style.display = 'none';
+      $('duel-status').textContent = 'Waiting for opponent to join…';
+      $('duel-copy-btn').addEventListener('click', function() {
+        navigator.clipboard.writeText(link).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 1500); });
+      });
+    });
+    duelPeer.on('connection', function(conn) {
+      duelConn = conn;
+      duelConn.on('open', function() {
+        $('duel-status').textContent = 'Opponent connected! Starting…';
+        const cached = dataSources['pokemon'];
+        if (cached) { duelStart(cached); }
+        else {
+          fetch('pokemon.json').then(r => r.json()).then(data => { dataSources['pokemon'] = data; duelStart(data); });
+        }
+      });
+      duelConn.on('data', duelOnMessage);
+      duelConn.on('close', function() {
+        if (duelActive) { duelActive = false; duelShowStatus('Opponent disconnected.'); }
+      });
+    });
+    duelPeer.on('error', function(err) {
+      $('duel-status').textContent = 'Connection error: ' + err.type;
+    });
+  }
+
+  function duelJoin(hostId) {
+    duelRole = 'red';
+    duelPeer = new Peer();
+    duelPeer.on('open', function() {
+      $('duel-status').textContent = 'Connecting to host…';
+      duelConn = duelPeer.connect(hostId, { reliable: true });
+      duelConn.on('open', function() {
+        $('duel-status').textContent = 'Connected! Waiting for game to start…';
+        duelConn.send({ type: 'join' });
+      });
+      duelConn.on('data', duelOnMessage);
+      duelConn.on('close', function() {
+        if (duelActive) { duelActive = false; duelShowStatus('Host disconnected.'); }
+      });
+    });
+    duelPeer.on('error', function(err) {
+      $('duel-status').textContent = 'Connection error: ' + err.type;
+    });
+  }
+
+  function duelStart(data) {
+    items = data;
+    duelActive = true;
+    duelBlue = new Set();
+    duelRed = new Set();
+    duelMyRevealed = new Set();
+    duelOwner = {};
+    duelFinishMe = false;
+    duelFinishOpponent = false;
+    foundSet = new Set();
+    elapsedMs = 0;
+    buildIndex();
+    displayOrder = items.map((_, i) => i);
+
+    if (duelRole === 'blue') {
+      duelConn.send({ type: 'start', shadows: shadowsEnabled });
+    }
+
+    $input.style.display = '';
+    $input.value = '';
+    $input.disabled = false;
+    $input.placeholder = 'Type a Pokémon name…';
+    $timer.textContent = '00:00';
+    $foundCount.textContent = '0';
+    $('total-count').textContent = items.length;
+
+    duelRenderGrid();
+    duelUpdateScore();
+    startTimer();
+    $input.focus();
+
+    // Clear duel param from URL
+    if (window.history.replaceState) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }
+
+  function duelRenderGrid() {
+    const wrap = $('grid-wrap');
+    wrap.innerHTML = '';
+    wrap.classList.toggle('shadows-on', shadowsEnabled);
+
+    // Duel score bar
+    const scoreBar = document.createElement('div');
+    scoreBar.className = 'duel-score';
+    scoreBar.id = 'duel-score-bar';
+    scoreBar.innerHTML = '<span class="ds-blue">🔵 Blue: <span id="ds-blue-count">0</span></span>' +
+      '<span class="ds-neutral">Remaining: <span id="ds-neutral-count">' + items.length + '</span></span>' +
+      '<span class="ds-red">🔴 Red: <span id="ds-red-count">0</span></span>';
+    wrap.appendChild(scoreBar);
+
+    // Finish bar
+    const finishBar = document.createElement('div');
+    finishBar.className = 'duel-finish-bar';
+    finishBar.id = 'duel-finish-bar';
+    finishBar.innerHTML = '<button class="btn danger" id="duel-finish-btn">Finish</button>' +
+      '<span class="duel-finish-status" id="duel-finish-status"></span>';
+    wrap.appendChild(finishBar);
+
+    // Grid (flat, no regions)
+    const grid = document.createElement('div');
+    grid.className = 'region-grid';
+    for (const idx of displayOrder) grid.appendChild(makeCard(idx));
+    wrap.appendChild(grid);
+
+    $('duel-finish-btn').addEventListener('click', duelFinish);
+  }
+
+  function duelUpdateScore() {
+    var bc = 0, rc = 0;
+    for (var key in duelOwner) { if (duelOwner[key] === 'blue') bc++; else rc++; }
+    var el;
+    el = $('ds-blue-count'); if (el) el.textContent = bc;
+    el = $('ds-red-count'); if (el) el.textContent = rc;
+    el = $('ds-neutral-count'); if (el) el.textContent = items.length - bc - rc;
+    $foundCount.textContent = duelMyRevealed.size;
+  }
+
+  function duelRevealCard(idx, owner, isMe) {
+    const c = $('c' + idx);
+    if (!c) return;
+    const w = items[idx];
+    const colorClass = owner === 'blue' ? 'duel-blue' : 'duel-red';
+
+    if (isMe) {
+      c.className = 'card duel-mine ' + colorClass;
+      c.querySelector('.poke-sprite').src = w.s;
+      c.querySelector('.poke-name').textContent = w.n;
+      c.querySelector('.poke-gen').textContent = w.g;
+    } else {
+      if (c.classList.contains('duel-mine')) return;
+      c.className = 'card duel-claimed ' + colorClass;
+      var icon = c.querySelector('.duel-claimed-icon');
+      if (!icon) {
+        icon = document.createElement('div');
+        icon.className = 'duel-claimed-icon';
+        c.appendChild(icon);
+      }
+      icon.textContent = owner === 'blue' ? '🔵' : '🔴';
+    }
+
+    if (typeBgEnabled) {
+      applyTypeBg(c, w);
+    }
+  }
+
+  function duelHandleInput(val) {
+    if (!duelActive) return;
+    const matches = findAllMatches(val);
+    if (matches.length > 0) {
+      var newReveals = [];
+      for (const idx of matches) {
+        if (duelMyRevealed.has(idx)) continue;
+        duelMyRevealed.add(idx);
+        var isFirst = !(duelOwner[idx]);
+        if (isFirst) {
+          duelOwner[idx] = duelRole;
+          if (duelRole === 'blue') duelBlue.add(idx); else duelRed.add(idx);
+        }
+        duelRevealCard(idx, duelOwner[idx], true);
+        newReveals.push(idx);
+      }
+      if (newReveals.length > 0) {
+        if (soundEnabled) playCry(items[matches[0]].id);
+        duelConn.send({ type: 'reveal', indices: newReveals, player: duelRole });
+        duelUpdateScore();
+        flashInput();
+        if (autoScrollEnabled) setTimeout(() => { const t = $('c' + matches[0]); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
+      }
+      $input.value = '';
+    }
+  }
+
+  function duelOnMessage(msg) {
+    if (msg.type === 'start') {
+      shadowsEnabled = msg.shadows;
+      $('tog-shadows').classList.toggle('on', shadowsEnabled);
+      if (duelRole === 'red') {
+        const cached = dataSources['pokemon'];
+        if (cached) { duelStart(cached); }
+        else {
+          fetch('pokemon.json').then(r => r.json()).then(data => { dataSources['pokemon'] = data; duelStart(data); });
+        }
+      }
+    } else if (msg.type === 'reveal') {
+      for (const idx of msg.indices) {
+        if (!duelOwner[idx]) {
+          duelOwner[idx] = msg.player;
+          if (msg.player === 'blue') duelBlue.add(idx); else duelRed.add(idx);
+        }
+        if (!duelMyRevealed.has(idx)) {
+          duelRevealCard(idx, duelOwner[idx], false);
+        }
+      }
+      duelUpdateScore();
+    } else if (msg.type === 'finish') {
+      duelFinishOpponent = true;
+      var st = $('duel-finish-status');
+      if (st) st.textContent = 'Opponent wants to finish…';
+      if (duelFinishMe) duelEnd();
+    } else if (msg.type === 'end') {
+      duelEnd();
+    } else if (msg.type === 'shadows') {
+      shadowsEnabled = msg.value;
+      $('tog-shadows').classList.toggle('on', shadowsEnabled);
+      $('grid-wrap').classList.toggle('shadows-on', shadowsEnabled);
+    } else if (msg.type === 'join') {
+      // guest joined, handled in connection event
+    }
+  }
+
+  function duelFinish() {
+    if (duelFinishMe) return;
+    if (!confirm('Finish the duel? Both players must agree.')) return;
+    duelFinishMe = true;
+    duelConn.send({ type: 'finish', player: duelRole });
+    var st = $('duel-finish-status');
+    if (st) st.textContent = 'Waiting for opponent…';
+    $('duel-finish-btn').disabled = true;
+    if (duelFinishOpponent) duelEnd();
+  }
+
+  function duelEnd() {
+    duelActive = false;
+    stopTimer();
+    $input.disabled = true;
+    // Reveal all unclaimed cards
+    for (var i = 0; i < items.length; i++) {
+      if (!duelMyRevealed.has(i)) {
+        var c = $('c' + i);
+        if (!c) continue;
+        var w = items[i];
+        c.querySelector('.poke-sprite').src = w.s;
+        c.querySelector('.poke-name').textContent = w.n;
+        c.querySelector('.poke-gen').textContent = w.g;
+        if (!duelOwner[i]) {
+          c.className = 'card missed';
+        }
+        if (typeBgEnabled) applyTypeBg(c, w);
+      }
+    }
+    duelUpdateScore();
+    var bc = 0, rc = 0;
+    for (var key in duelOwner) { if (duelOwner[key] === 'blue') bc++; else rc++; }
+    var winner = bc > rc ? 'Blue' : rc > bc ? 'Red' : 'Tie';
+    var myColor = duelRole === 'blue' ? 'Blue' : 'Red';
+    var result = winner === 'Tie' ? "It's a tie!" : (winner === myColor ? 'You win!' : 'You lose!');
+    $('duel-finish-bar').innerHTML = '<div style="font-size:1rem;font-weight:800;color:var(--text);">' + result +
+      ' — 🔵 ' + bc + ' vs ' + rc + ' 🔴</div>';
+  }
+
+  function duelShowStatus(msg) {
+    var st = $('duel-status');
+    if (st) st.textContent = msg;
+  }
+
   // ── Tab switching ──
 
   function switchTab(tab) {
     if (tab === currentTab && items.length) return;
     stopTimer(); timerRunning = false; givenUp = false;
+    if (currentTab === 'duel') duelCleanup();
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
 
     const isPoke = tab === 'pokemon';
     const isWtp = tab === 'wtp';
-    const subtitles = { pokemon: 'Pokémon', wtp: "Who's That Pokémon?" };
+    const isDuel = tab === 'duel';
+    const subtitles = { pokemon: 'Pokémon', wtp: "Who's That Pokémon?", duel: '⚔️ Duel Mode' };
     $('subtitle').textContent = subtitles[tab] || tab;
     $input.placeholder = isWtp ? 'Type the Pokémon name…' : 'Type a Pokémon name…';
     if (!isPoke) stopCycleForms();
-    $('set-sound').style.display = (isPoke || isWtp) ? '' : 'none';
-    $('set-shadows').style.display = isPoke ? '' : 'none';
+    $('set-sound').style.display = (isPoke || isWtp || isDuel) ? '' : 'none';
+    $('set-shadows').style.display = (isPoke || isDuel) ? '' : 'none';
     $('set-cycle').style.display = isPoke ? '' : 'none';
 
-    $('action-bar').style.display = isWtp ? 'none' : '';
+    $('action-bar').style.display = (isWtp || isDuel) ? 'none' : '';
+    $('btn-history').style.display = isDuel ? 'none' : '';
+    $('best-display').style.display = isDuel ? 'none' : '';
 
-    if ((isPoke || isWtp) && !pokeFamilies) {
+    if ((isPoke || isWtp || isDuel) && !pokeFamilies) {
       fetch('families.json').then(r => r.json()).then(fams => {
         pokeFamilies = fams;
         pokeFamilyMap = {};
         fams.forEach((fam, i) => fam.forEach(pid => { pokeFamilyMap[pid] = i; }));
       }).catch(() => {});
     }
-    if (isPoke && !pokeForms) {
+    if ((isPoke || isDuel) && !pokeForms) {
       fetch('pokemon_forms.json').then(r => r.json()).then(data => { pokeForms = data; refreshTypeBgs(); }).catch(() => {});
     }
-    if ((isPoke || isWtp) && !pokeDetails) {
+    if ((isPoke || isWtp || isDuel) && !pokeDetails) {
       fetch('pokemon_details.json').then(r => r.json()).then(data => {
         pokeDetails = data;
         if (isPoke) refreshTypeBgs();
       }).catch(() => {});
+    }
+
+    if (isDuel) {
+      duelShowLobby();
+      return;
     }
 
     if (isWtp) {
@@ -1376,6 +1736,11 @@ const Q = (function() {
       return;
     }
 
+    if (currentTab === 'duel') {
+      duelHandleInput(val);
+      return;
+    }
+
     const matches = findAllMatches(val);
     if (matches.length > 0) {
       for (const idx of matches) { foundSet.add(idx); revealCard(idx, false); toast(items[idx]); }
@@ -1421,9 +1786,13 @@ const Q = (function() {
   });
 
   $('set-shadows').addEventListener('click', function() {
+    if (currentTab === 'duel' && duelRole !== 'blue') return;
     shadowsEnabled = !shadowsEnabled;
     $('tog-shadows').classList.toggle('on', shadowsEnabled);
     $('grid-wrap').classList.toggle('shadows-on', shadowsEnabled);
+    if (currentTab === 'duel' && duelConn && duelRole === 'blue') {
+      duelConn.send({ type: 'shadows', value: shadowsEnabled });
+    }
   });
 
   $('set-cycle').addEventListener('click', function() {
@@ -1475,7 +1844,12 @@ const Q = (function() {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  switchTab('pokemon');
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('duel')) {
+    switchTab('duel');
+  } else {
+    switchTab('pokemon');
+  }
   if (cycleFormsEnabled) startCycleForms();
 
   return { closeModal: () => $overlay.classList.remove('active'), reset };
