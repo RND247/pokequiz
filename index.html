@@ -121,7 +121,7 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 .card { aspect-ratio: 1; background: var(--bg-card); border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 1px solid transparent; overflow: hidden; transition: background 0.3s, border-color 0.3s; cursor: default; }
 .card .rank { position: absolute; top: 2px; left: 3px; font-size: 0.5rem; color: var(--text-dim); opacity: 0.35; }
 .card.just-found { animation: pop 0.4s ease-out; }
-.card.last-revealed { box-shadow: 0 0 10px 3px rgba(250,204,21,0.7), inset 0 0 6px rgba(250,204,21,0.15); border-color: #facc15; }
+.card.last-revealed { box-shadow: 0 0 12px 4px rgba(250,204,21,0.6); border-color: #facc15 !important; background: rgba(250,204,21,0.15) !important; }
 @keyframes pop { 0% { transform: scale(1.2); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
 
 .card.unrevealed .char { font-size: 1.45rem; color: var(--text-dim); opacity: 0.08; filter: blur(4px); user-select: none; }
@@ -1659,13 +1659,7 @@ const Q = (function() {
         flashInput();
         if (autoScrollEnabled) setTimeout(function() {
           var card = $('c' + matches[0]);
-          if (!card) return;
-          if (duelSettings.orderMode === 'dex-gens') {
-            var sec = card.closest('.region-section');
-            if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          } else {
-            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
+          if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 50);
       }
       $input.value = '';
@@ -1899,13 +1893,7 @@ const Q = (function() {
       save();
       if (autoScrollEnabled) setTimeout(function() {
         var card = $('c' + matches[0]);
-        if (!card) return;
-        if (orderMode === 'dex-gens') {
-          var sec = card.closest('.region-section');
-          if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 50);
       if (foundSet.size === items.length) { stopTimer(); showModal(true); }
     }
