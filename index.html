@@ -63,10 +63,17 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 .grid { display: grid; gap: 3px; }
 .grid.mandarin-grid { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
 
-.region-section { margin-bottom: 12px; }
+.region-section { margin-bottom: 12px; border: 2px solid transparent; border-radius: 8px; padding: 4px; transition: border-color 0.6s, box-shadow 0.6s; }
+.region-section.region-complete { border-color: var(--green); box-shadow: 0 0 12px var(--green-glow), inset 0 0 12px var(--green-glow); }
+.region-section.region-complete .region-header { color: var(--green); }
+.region-section.region-complete .region-count { color: var(--green) !important; }
 .region-header { display: flex; align-items: center; gap: 10px; padding: 10px 4px 6px; font-size: 0.85rem; font-weight: 700; color: var(--text-pinyin); letter-spacing: 0.3px; }
 .region-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 .region-header .region-count { font-size: 0.7rem; font-weight: 600; color: var(--text-dim); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; overflow: hidden; }
+.confetti-piece { position: absolute; top: -20px; width: 10px; height: 10px; opacity: 0.9; animation: confetti-fall linear forwards; }
+@keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(105vh) rotate(720deg) scale(0.4); opacity: 0; } }
 .region-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 3px; }
 
 .card { aspect-ratio: 1; background: var(--bg-card); border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 1px solid transparent; overflow: hidden; transition: background 0.3s, border-color 0.3s; cursor: default; }
@@ -351,6 +358,7 @@ const Q = (function() {
   let pokeFamilies = null;
   let pokeFamilyMap = {};
   let completedFamilies = new Set();
+  let completedRegions = new Set();
   let pokeForms = null;
 
   // WTP mode state
@@ -570,6 +578,7 @@ const Q = (function() {
         const found = list.filter(i => foundSet.has(i)).length;
         const sec = document.createElement('div');
         sec.className = 'region-section';
+        sec.id = 'rs-' + region;
         const hdr = document.createElement('div');
         hdr.className = 'region-header';
         hdr.innerHTML = region + ' (Gen ' + REGION_GEN[region] + ') <span class="region-count" id="rc-' + region + '">' + found + '/' + list.length + '</span>';
@@ -764,6 +773,59 @@ const Q = (function() {
     setTimeout(() => el.remove(), 4500);
   }
 
+  function launchConfetti() {
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    document.body.appendChild(container);
+    const colors = ['#f7d02c', '#ee8130', '#6390f0', '#7ac74c', '#f95587', '#a98ff3', '#96d9d6', '#d685ad', '#e94560'];
+    for (let i = 0; i < 120; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      const shapes = ['circle', 'square', 'rect'];
+      const shape = shapes[Math.floor(Math.random() * shapes.length)];
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.background = c;
+      piece.style.width = (6 + Math.random() * 8) + 'px';
+      piece.style.height = shape === 'rect' ? (3 + Math.random() * 4) + 'px' : piece.style.width;
+      piece.style.borderRadius = shape === 'circle' ? '50%' : '2px';
+      piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+      piece.style.animationDelay = Math.random() * 0.8 + 's';
+      container.appendChild(piece);
+    }
+    setTimeout(() => container.remove(), 5000);
+  }
+
+  function checkRegionComplete() {
+    if (currentTab !== 'pokemon') return;
+    for (const region of REGION_ORDER) {
+      if (completedRegions.has(region)) continue;
+      const list = regionIndices[region];
+      if (!list || !list.length) continue;
+      if (list.every(i => foundSet.has(i))) {
+        completedRegions.add(region);
+        const sec = $('rs-' + region);
+        if (sec) sec.classList.add('region-complete');
+        setTimeout(() => {
+          launchConfetti();
+          regionToast(region);
+        }, 300);
+      }
+    }
+  }
+
+  function regionToast(region) {
+    const el = document.createElement('div');
+    el.className = 'toast family-toast';
+    const label = document.createElement('div');
+    label.className = 'family-label';
+    label.textContent = region + ' (Gen ' + REGION_GEN[region] + ') Complete!';
+    label.style.fontSize = '0.85rem';
+    el.appendChild(label);
+    $toasts.appendChild(el);
+    setTimeout(() => el.remove(), 4500);
+  }
+
   function updateUI() {
     $foundCount.textContent = foundSet.size;
     $bar.style.width = (foundSet.size / items.length * 100) + '%';
@@ -946,7 +1008,7 @@ const Q = (function() {
   }
 
   function reset() {
-    givenUp = false; foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set();
+    givenUp = false; foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set(); completedRegions = new Set();
     stopTimer(); timerRunning = false; $timer.textContent = '00:00';
     $input.value = ''; $input.disabled = false;
     if (hintEnabled) $hint.textContent = '—';
@@ -977,7 +1039,7 @@ const Q = (function() {
     wtpOrder = items.map((_, i) => i);
     for (let i = wtpOrder.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [wtpOrder[i], wtpOrder[j]] = [wtpOrder[j], wtpOrder[i]]; }
     wtpIdx = 0; wtpCorrect = 0; wtpGenCorrect = 0; wtpRevealed = false; wtpSpriteShown = false; wtpGenGuessed = false;
-    foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set();
+    foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set(); completedRegions = new Set();
     $timer.textContent = '00:00'; $input.value = ''; $input.disabled = false;
     $foundCount.textContent = '0'; $('total-count').textContent = items.length;
     $bar.style.width = '0%';
@@ -1179,7 +1241,7 @@ const Q = (function() {
   }
 
   function activateData(data) {
-    items = data; foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set();
+    items = data; foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set(); completedRegions = new Set();
     $timer.textContent = '00:00'; $input.value = ''; $input.disabled = false;
     if (hintEnabled) $hint.textContent = '—';
     $('total-count').textContent = items.length;
@@ -1197,6 +1259,16 @@ const Q = (function() {
           if (fam.every(fid => { const idx = idToIdx[fid]; return idx !== undefined && foundSet.has(idx); }))
             completedFamilies.add(fi);
         });
+      }
+      if (currentTab === 'pokemon') {
+        for (const region of REGION_ORDER) {
+          const list = regionIndices[region];
+          if (list && list.length && list.every(i => foundSet.has(i))) {
+            completedRegions.add(region);
+            const sec = $('rs-' + region);
+            if (sec) sec.classList.add('region-complete');
+          }
+        }
       }
     }
     updateUI(); displayHighscore(); $input.focus();
@@ -1219,7 +1291,7 @@ const Q = (function() {
     if (matches.length > 0) {
       for (const idx of matches) { foundSet.add(idx); revealCard(idx, false); toast(items[idx]); }
       if (currentTab === 'pokemon' && soundEnabled) playCry(items[matches[0]].id);
-      if (currentTab === 'pokemon') checkFamilyComplete(matches.map(i => items[i].id));
+      if (currentTab === 'pokemon') { checkFamilyComplete(matches.map(i => items[i].id)); checkRegionComplete(); }
       flashInput(); updateUI(); this.value = '';
       if (hintEnabled) $hint.textContent = '—';
       save();
