@@ -60,9 +60,14 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 .icon-btn:hover { border-color: var(--text-pinyin); color: var(--text); }
 
 .mode-slider { display: flex; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-.mode-slider button { background: none; border: none; color: var(--text-dim); padding: 5px 12px; font-size: 0.68rem; font-weight: 700; cursor: pointer; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.mode-slider button { background: none; border: none; color: var(--text-dim); padding: 5px 12px; font-size: 0.68rem; font-weight: 700; cursor: pointer; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; flex: 1; }
 .mode-slider button:hover { color: var(--text); }
 .mode-slider button.active { background: var(--accent); color: #fff; }
+
+.settings-section-label { padding: 6px 14px 2px; font-size: 0.6rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.6; }
+.setting-row-slider { padding: 4px 14px 6px; }
+.setting-row-slider .mode-slider { width: 100%; }
+.settings-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
 .settings-wrap { position: relative; }
 .settings-panel { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; min-width: 180px; z-index: 150; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
@@ -291,14 +296,17 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
     <button class="btn danger" id="btn-give-up">Give Up</button>
     <button class="btn" id="btn-reset">Reset</button>
     <div class="btn-sep"></div>
-    <div class="mode-slider" id="mode-slider">
-      <button id="btn-order" class="active">Dex Order</button>
-      <button id="btn-shuffle">Shuffle</button>
-    </div>
-    <div class="btn-sep"></div>
     <div class="settings-wrap">
       <button class="icon-btn" id="btn-settings" title="Settings">⚙️</button>
       <div class="settings-panel" id="settings-panel">
+        <div class="settings-section-label">Order By</div>
+        <div class="setting-row-slider">
+          <div class="mode-slider" id="mode-slider">
+            <button id="btn-order" class="active">Dex Order</button>
+            <button id="btn-shuffle">Random</button>
+          </div>
+        </div>
+        <div class="settings-divider"></div>
         <div class="setting-row" id="set-sound"><span class="setting-label">Sound</span><div class="toggle-switch on" id="tog-sound"></div></div>
         <div class="setting-row" id="set-shadows"><span class="setting-label">Shadows</span><div class="toggle-switch" id="tog-shadows"></div></div>
         <div class="setting-row" id="set-cycle"><span class="setting-label">Cycle Forms</span><div class="toggle-switch on" id="tog-cycle"></div></div>
