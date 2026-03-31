@@ -374,8 +374,9 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
         <div class="settings-section-label">Order By</div>
         <div class="setting-row-slider">
           <div class="mode-slider" id="mode-slider">
-            <button id="btn-order" class="active">Dex Order</button>
-            <button id="btn-shuffle">Random</button>
+            <button id="btn-dex-gens" class="active" data-order="dex-gens">Dex + Gens</button>
+            <button id="btn-dex" data-order="dex">Dex</button>
+            <button id="btn-random" data-order="random">Random</button>
           </div>
         </div>
         <div class="settings-divider"></div>
@@ -503,7 +504,7 @@ const Q = (function() {
   let cycleFormsInterval = null;
   let autoScrollEnabled = true;
   let typeBgEnabled = true;
-  let shuffleMode = false;
+  let orderMode = 'dex-gens';
 
   let keyToIndices = {};
   let allKeys = [];
@@ -693,7 +694,7 @@ const Q = (function() {
       const frag = document.createDocumentFragment();
       for (const idx of displayOrder) frag.appendChild(makeCard(idx));
       grid.appendChild(frag);
-    } else if (shuffleMode) {
+    } else if (orderMode !== 'dex-gens') {
       wrap.innerHTML = '';
       wrap.classList.toggle('shadows-on', shadowsEnabled);
       regionIndices = {};
@@ -1170,9 +1171,8 @@ const Q = (function() {
   function reset() {
     if (foundSet.size > 0 && !confirm('Reset? All progress will be lost.')) return;
     givenUp = false; foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set(); completedRegions = new Set();
-    shuffleMode = false;
-    $('btn-order').classList.add('active');
-    $('btn-shuffle').classList.remove('active');
+    orderMode = 'dex-gens';
+    $('mode-slider').querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b.dataset.order === 'dex-gens'); });
     stopTimer(); timerRunning = false; $timer.textContent = '00:00';
     $input.value = ''; $input.disabled = false;
     if (currentTab === 'wtp') {
@@ -1183,20 +1183,16 @@ const Q = (function() {
     renderGrid(); $input.focus(); localStorage.removeItem(saveKey());
   }
 
-  function shuffle() {
-    shuffleMode = true;
-    for (let i = displayOrder.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [displayOrder[i], displayOrder[j]] = [displayOrder[j], displayOrder[i]]; }
-    $('btn-shuffle').classList.add('active');
-    $('btn-order').classList.remove('active');
-    renderGrid();
-    restoreRevealed();
-  }
-
-  function order() {
-    shuffleMode = false;
-    displayOrder = items.map((_, i) => i);
-    $('btn-order').classList.add('active');
-    $('btn-shuffle').classList.remove('active');
+  function setOrderMode(mode) {
+    if (mode === orderMode) return;
+    orderMode = mode;
+    if (mode === 'random') {
+      displayOrder = items.map((_, i) => i);
+      for (let i = displayOrder.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [displayOrder[i], displayOrder[j]] = [displayOrder[j], displayOrder[i]]; }
+    } else {
+      displayOrder = items.map((_, i) => i);
+    }
+    $('mode-slider').querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b.dataset.order === mode); });
     renderGrid();
     restoreRevealed();
   }
@@ -1890,8 +1886,11 @@ const Q = (function() {
   $('btn-give-up').addEventListener('click', giveUp);
   $('btn-reset').addEventListener('click', reset);
   $('btn-duel-link').addEventListener('click', function() { switchTab('duel'); });
-  $('btn-shuffle').addEventListener('click', function() { if (!shuffleMode) shuffle(); });
-  $('btn-order').addEventListener('click', function() { if (shuffleMode) order(); });
+  $('mode-slider').addEventListener('click', function(e) {
+    var btn = e.target.closest('button');
+    if (!btn || !btn.dataset.order) return;
+    setOrderMode(btn.dataset.order);
+  });
 
   $('btn-settings').addEventListener('click', function(e) {
     e.stopPropagation();
