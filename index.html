@@ -51,11 +51,24 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--green), var(--text-pinyin)); transition: width 0.35s ease; border-radius: 3px; }
 
 .btn-row { display: flex; gap: 6px; justify-content: center; padding: 4px 0 6px; flex-wrap: wrap; align-items: center; }
-.btn-sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+.btn-sep { width: 1px; height: 22px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
 .btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); padding: 5px 14px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
 .btn:hover { border-color: var(--text-pinyin); color: var(--text); }
 .btn.danger { border-color: var(--accent); color: var(--accent); }
 .btn.danger:hover { background: var(--accent); color: #fff; }
+.icon-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); width: 32px; height: 32px; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; position: relative; padding: 0; line-height: 1; }
+.icon-btn:hover { border-color: var(--text-pinyin); color: var(--text); }
+
+.settings-wrap { position: relative; }
+.settings-panel { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; min-width: 180px; z-index: 150; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+.settings-panel.open { display: block; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; font-size: 0.75rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; transition: background 0.1s; }
+.setting-row:hover { background: var(--bg-card); }
+.setting-row .setting-label { flex: 1; }
+.toggle-switch { width: 34px; height: 18px; background: var(--border); border-radius: 9px; position: relative; transition: background 0.2s; flex-shrink: 0; margin-left: 10px; }
+.toggle-switch.on { background: var(--green); }
+.toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.toggle-switch.on::after { transform: translateX(16px); }
 
 .grid-wrap { padding: 8px 10px; max-width: 1400px; margin: 0 auto; }
 .grid { display: grid; gap: 3px; }
@@ -269,16 +282,21 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
       <div class="progress-bar" id="progress-bar"></div>
     </div>
   </div>
-  <div class="btn-row">
+  <div class="btn-row" id="action-bar">
     <button class="btn danger" id="btn-give-up">Give Up</button>
     <button class="btn" id="btn-reset">Reset</button>
     <div class="btn-sep"></div>
-    <button class="btn" id="btn-shuffle">Shuffle</button>
-    <button class="btn" id="btn-order">Freq Order</button>
+    <button class="icon-btn" id="btn-shuffle" title="Shuffle">🔀</button>
+    <button class="icon-btn" id="btn-order" title="Dex Order">📋</button>
     <div class="btn-sep"></div>
-    <button class="btn" id="btn-sound" style="display:none">Sound: Off</button>
-    <button class="btn" id="btn-shadows" style="display:none">Shadows: Off</button>
-    <button class="btn" id="btn-cycle" style="display:none">Cycle Forms: Off</button>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="btn-settings" title="Settings">⚙️</button>
+      <div class="settings-panel" id="settings-panel">
+        <div class="setting-row" id="set-sound"><span class="setting-label">Sound</span><div class="toggle-switch" id="tog-sound"></div></div>
+        <div class="setting-row" id="set-shadows"><span class="setting-label">Shadows</span><div class="toggle-switch" id="tog-shadows"></div></div>
+        <div class="setting-row" id="set-cycle"><span class="setting-label">Cycle Forms</span><div class="toggle-switch" id="tog-cycle"></div></div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -1189,15 +1207,12 @@ const Q = (function() {
     const subtitles = { pokemon: 'Pokémon', wtp: "Who's That Pokémon?" };
     $('subtitle').textContent = subtitles[tab] || tab;
     $input.placeholder = isWtp ? 'Type the Pokémon name…' : 'Type a Pokémon name…';
-    $('btn-order').textContent = 'Dex Order';
-    $('btn-sound').style.display = (isPoke || isWtp) ? '' : 'none';
-    $('btn-shadows').style.display = isPoke ? '' : 'none';
-    $('btn-cycle').style.display = isPoke ? '' : 'none';
     if (!isPoke) stopCycleForms();
+    $('set-sound').style.display = (isPoke || isWtp) ? '' : 'none';
+    $('set-shadows').style.display = isPoke ? '' : 'none';
+    $('set-cycle').style.display = isPoke ? '' : 'none';
 
-    const gridBtns = ['btn-give-up', 'btn-reset', 'btn-shuffle', 'btn-order', 'btn-shadows', 'btn-cycle'];
-    gridBtns.forEach(id => { $(id).style.display = isWtp ? 'none' : ''; });
-    document.querySelectorAll('.btn-sep').forEach(el => { el.style.display = isWtp ? 'none' : ''; });
+    $('action-bar').style.display = isWtp ? 'none' : '';
 
     if ((isPoke || isWtp) && !pokeFamilies) {
       fetch('families.json').then(r => r.json()).then(fams => {
@@ -1311,23 +1326,28 @@ const Q = (function() {
   $('btn-shuffle').addEventListener('click', shuffle);
   $('btn-order').addEventListener('click', order);
 
-  $('btn-sound').addEventListener('click', function() {
-    soundEnabled = !soundEnabled;
-    this.textContent = 'Sound: ' + (soundEnabled ? 'On' : 'Off');
-    this.style.borderColor = soundEnabled ? 'var(--text-pinyin)' : '';
+  $('btn-settings').addEventListener('click', function(e) {
+    e.stopPropagation();
+    $('settings-panel').classList.toggle('open');
+  });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.settings-wrap')) $('settings-panel').classList.remove('open');
   });
 
-  $('btn-shadows').addEventListener('click', function() {
+  $('set-sound').addEventListener('click', function() {
+    soundEnabled = !soundEnabled;
+    $('tog-sound').classList.toggle('on', soundEnabled);
+  });
+
+  $('set-shadows').addEventListener('click', function() {
     shadowsEnabled = !shadowsEnabled;
-    this.textContent = 'Shadows: ' + (shadowsEnabled ? 'On' : 'Off');
-    this.style.borderColor = shadowsEnabled ? 'var(--text-pinyin)' : '';
+    $('tog-shadows').classList.toggle('on', shadowsEnabled);
     $('grid-wrap').classList.toggle('shadows-on', shadowsEnabled);
   });
 
-  $('btn-cycle').addEventListener('click', function() {
+  $('set-cycle').addEventListener('click', function() {
     cycleFormsEnabled = !cycleFormsEnabled;
-    this.textContent = 'Cycle Forms: ' + (cycleFormsEnabled ? 'On' : 'Off');
-    this.style.borderColor = cycleFormsEnabled ? 'var(--text-pinyin)' : '';
+    $('tog-cycle').classList.toggle('on', cycleFormsEnabled);
     if (cycleFormsEnabled) startCycleForms(); else stopCycleForms();
   });
 
