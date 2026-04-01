@@ -698,6 +698,35 @@ const Q = (function() {
     setTimeout(function() { el.remove(); }, 2000);
   }
 
+  function findInFullData(q) {
+    var full = dataSources['pokemon'];
+    if (!full) return null;
+    for (var i = 0; i < full.length; i++) {
+      var p = full[i];
+      for (var ki = 0; ki < p.k.length; ki++) {
+        if (p.k[ki] === q) return p;
+      }
+    }
+    return null;
+  }
+
+  function isOutsideSelectedGens(q) {
+    var gens = currentTab === 'duel' ? duelSettings.gens : currentTab === 'coop' ? coopSettings.gens : selectedGens;
+    if (gens.size === 9) return null;
+    if (hasAnyExtension(q)) return null;
+    var p = findInFullData(q);
+    if (p && !gens.has(REGION_GEN[p.g])) return p;
+    return null;
+  }
+
+  function toastOutsideGen(p) {
+    var el = document.createElement('div');
+    el.className = 'toast toast-dupe';
+    el.innerHTML = '<img src="' + p.s + '" alt=""> ' + p.n + ' is not in the selected generations';
+    $toasts.appendChild(el);
+    setTimeout(function() { el.remove(); }, 2500);
+  }
+
   function fmtTime(ms) {
     const s = Math.floor(ms / 1000);
     const hrs = Math.floor(s / 3600);
@@ -2095,6 +2124,14 @@ const Q = (function() {
           $input.value = '';
         }
       }
+    } else if (val.length > 0) {
+      var q = val.toLowerCase().trim();
+      var outsidePoke = isOutsideSelectedGens(q);
+      if (outsidePoke) {
+        toastOutsideGen(outsidePoke);
+        flashInputDupe();
+        $input.value = '';
+      }
     }
   }
 
@@ -2617,6 +2654,14 @@ const Q = (function() {
           $input.value = '';
         }
       }
+    } else if (val.length > 0) {
+      var q = val.toLowerCase().trim();
+      var outsidePoke = isOutsideSelectedGens(q);
+      if (outsidePoke) {
+        toastOutsideGen(outsidePoke);
+        flashInputDupe();
+        $input.value = '';
+      }
     }
   }
 
@@ -2894,6 +2939,13 @@ const Q = (function() {
       if (dupeIndices && dupeIndices.length > 0 && dupeIndices.every(function(i) { return foundSet.has(i); })) {
         if (!hasAnyExtension(q)) {
           toastDupe(items[dupeIndices[0]]);
+          flashInputDupe();
+          this.value = '';
+        }
+      } else {
+        var outsidePoke = isOutsideSelectedGens(q);
+        if (outsidePoke) {
+          toastOutsideGen(outsidePoke);
           flashInputDupe();
           this.value = '';
         }
