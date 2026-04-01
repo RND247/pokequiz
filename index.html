@@ -938,7 +938,7 @@ const Q = (function() {
       c.innerHTML = '<span class="rank">#' + w.id + '</span>' +
         '<div class="poke-placeholder">?</div>' +
         '<img class="poke-shadow" src="' + w.s + '" alt="" loading="lazy">' +
-        '<img class="poke-sprite" alt="">' +
+        '<img class="poke-sprite" alt="" loading="lazy">' +
         '<div class="poke-name"></div><div class="poke-gen"></div>';
       c.dataset.pid = w.id;
     }
@@ -988,6 +988,17 @@ const Q = (function() {
       }
     }
   }
+
+  document.addEventListener('error', function(e) {
+    var img = e.target;
+    if (img.tagName !== 'IMG' || !img.classList.contains('poke-sprite') && !img.classList.contains('poke-shadow')) return;
+    var retries = parseInt(img.dataset.retries || '0');
+    if (retries >= 3) return;
+    img.dataset.retries = retries + 1;
+    var src = img.src;
+    img.removeAttribute('src');
+    setTimeout(function() { img.src = src; }, 500 * (retries + 1));
+  }, true);
 
   function pokeCryUrl(id) { return 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/' + id + '.ogg'; }
   function playCry(id) { try { const a = new Audio(pokeCryUrl(id)); a.volume = 0.3; a.play().catch(()=>{}); } catch(e){} }
@@ -2881,7 +2892,18 @@ const Q = (function() {
     const restored = load();
     renderGrid();
     if (restored) {
-      foundSet.forEach(i => { const c = $('c' + i); if (c) { c.className = 'card found'; revealCardContent(i); } });
+      var restoreArr = Array.from(foundSet);
+      var batchSize = 30;
+      function restoreBatch(start) {
+        var end = Math.min(start + batchSize, restoreArr.length);
+        for (var ri = start; ri < end; ri++) {
+          var idx = restoreArr[ri];
+          var c = $('c' + idx);
+          if (c) { c.className = 'card found'; revealCardContent(idx); }
+        }
+        if (end < restoreArr.length) setTimeout(function() { restoreBatch(end); }, 50);
+      }
+      restoreBatch(0);
       $timer.textContent = fmtTime(elapsedMs);
       if (currentTab === 'pokemon' && pokeFamilies) {
         const idToIdx = {};
