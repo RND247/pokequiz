@@ -387,8 +387,6 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
     <button class="btn" id="btn-reset">Reset</button>
     <button class="btn" id="btn-pause">⏸ Pause</button>
     <div class="btn-sep"></div>
-    <button class="btn" id="btn-duel-link" style="display:none;">⚔️ Duel Mode</button>
-    <div class="btn-sep" id="sep-duel-link" style="display:none;"></div>
     <div class="settings-wrap">
       <button class="btn" id="btn-settings" title="Settings">⚙️ Settings</button>
       <div class="settings-panel" id="settings-panel">
@@ -2353,8 +2351,6 @@ const Q = (function() {
     $('set-typebg').style.display = isMulti ? 'none' : '';
 
     $('action-bar').style.display = isMulti ? 'none' : '';
-    $('btn-duel-link').style.display = isPoke ? '' : 'none';
-    $('sep-duel-link').style.display = isPoke ? '' : 'none';
     $('duel-settings-bar').style.display = 'none';
     $('duel-sticky').style.display = 'none';
     $('coop-settings-bar').style.display = 'none';
@@ -2475,7 +2471,6 @@ const Q = (function() {
 
   $('btn-give-up').addEventListener('click', giveUp);
   $('btn-reset').addEventListener('click', reset);
-  $('btn-duel-link').addEventListener('click', function() { switchTab('duel'); });
 
   var paused = false;
   function togglePause() {
