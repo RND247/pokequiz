@@ -989,7 +989,7 @@ const Q = (function() {
     setTimeout(function() { img.src = src; }, 500 * (retries + 1));
   }, true);
 
-  function pokeCryUrl(id) { return 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/' + id + '.ogg'; }
+  function pokeCryUrl(id) { return 'https://cdn.jsdelivr.net/gh/PokeAPI/cries@main/cries/pokemon/latest/' + id + '.ogg'; }
   function playCry(id) { try { const a = new Audio(pokeCryUrl(id)); a.volume = 0.3; a.play().catch(()=>{}); } catch(e){} }
 
   function setTypeBg(c, types) {
