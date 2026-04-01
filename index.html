@@ -142,8 +142,8 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 .poke-placeholder { font-size: 2rem; font-weight: 900; color: var(--text-dim); opacity: 0.18; font-style: italic; text-shadow: 0 0 8px rgba(56,189,248,0.15); user-select: none; line-height: 1; }
 body.light .wtp-img.shadow { filter: brightness(0) drop-shadow(0 0 6px rgba(0,0,0,0.2)); }
 
-.card .poke-sprite { width: 56px; height: 56px; object-fit: contain; }
-.card .poke-sprite { -webkit-user-drag: none; user-select: none; }
+.card .poke-sprite { width: 56px; height: 56px; object-fit: contain; -webkit-user-drag: none; user-select: none; }
+.card .poke-sprite.img-error { visibility: hidden; }
 .card.unrevealed .poke-sprite { filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(56,189,248,0.3)); opacity: 0; position: absolute; pointer-events: none; }
 body.light .card.unrevealed .poke-sprite { filter: brightness(0) drop-shadow(0 0 3px rgba(0,0,0,0.2)); }
 .card.unrevealed .poke-name { display: none; }
@@ -981,12 +981,24 @@ const Q = (function() {
   document.addEventListener('error', function(e) {
     var img = e.target;
     if (img.tagName !== 'IMG' || !img.classList.contains('poke-sprite')) return;
+    img.classList.add('img-error');
     var retries = parseInt(img.dataset.retries || '0');
-    if (retries >= 3) return;
+    if (retries >= 5) return;
     img.dataset.retries = retries + 1;
-    var src = img.src;
+    var src = img.getAttribute('data-src') || img.src;
+    if (!img.getAttribute('data-src')) img.setAttribute('data-src', src);
     img.removeAttribute('src');
-    setTimeout(function() { img.src = src; }, 500 * (retries + 1));
+    setTimeout(function() {
+      img.src = src + (src.indexOf('?') === -1 ? '?' : '&') + '_r=' + retries;
+      img.classList.remove('img-error');
+    }, 1000 * (retries + 1));
+  }, true);
+
+  document.addEventListener('load', function(e) {
+    var img = e.target;
+    if (img.tagName === 'IMG' && img.classList.contains('poke-sprite')) {
+      img.classList.remove('img-error');
+    }
   }, true);
 
   function pokeCryUrl(id) { return 'https://cdn.jsdelivr.net/gh/PokeAPI/cries@main/cries/pokemon/latest/' + id + '.ogg'; }
