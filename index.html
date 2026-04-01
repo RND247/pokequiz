@@ -69,6 +69,7 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 #input-box:focus { border-color: var(--accent); }
 #input-box::placeholder { color: var(--text-dim); }
 #input-box.flash-green { border-color: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+#input-box.flash-amber { border-color: #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,0.5); }
 
 
 .btn-row { display: flex; gap: 6px; justify-content: center; padding: 4px 0 6px; flex-wrap: wrap; align-items: center; }
@@ -121,7 +122,7 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 .card { aspect-ratio: 1; background: var(--bg-card); border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 1px solid transparent; overflow: hidden; transition: background 0.3s, border-color 0.3s; cursor: default; }
 .card .rank { position: absolute; top: 2px; left: 3px; font-size: 0.5rem; color: var(--text-dim); opacity: 0.35; }
 .card.just-found { animation: pop 0.4s ease-out; }
-.card.last-revealed { box-shadow: 0 0 14px 5px rgba(250,204,21,0.6); border: 3px solid #facc15 !important; }
+.card.last-revealed, .card.coop-last-mine, .card.coop-last-partner { box-shadow: 0 0 14px 5px rgba(250,204,21,0.6); border: 3px solid #facc15 !important; }
 @keyframes pop { 0% { transform: scale(1.2); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
 
 .card.unrevealed .char { font-size: 1.45rem; color: var(--text-dim); opacity: 0.08; filter: blur(4px); user-select: none; }
@@ -197,6 +198,7 @@ body.light .wtp-img.shadow { filter: brightness(0) drop-shadow(0 0 6px rgba(0,0,
 .toast { background: var(--bg-card-found); border: 1px solid var(--green); border-radius: 8px; padding: 6px 12px; font-size: 0.82rem; color: var(--green); animation: slideIn 0.25s ease-out, fadeOut 0.4s ease 2.2s forwards; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
 .toast .tc { font-size: 1.05rem; }
 .toast img { width: 28px; height: 28px; }
+.toast.toast-dupe { background: rgba(245,158,11,0.12); border-color: #f59e0b; color: #f59e0b; }
 .toast.family-toast { background: linear-gradient(135deg, #1a1a3e, #0d2847); border-color: #f7d02c; color: #f7d02c; white-space: normal; flex-direction: column; padding: 10px 14px; gap: 4px; animation: slideIn 0.3s ease-out, fadeOut 0.8s ease 9s forwards; }
 .toast.family-toast .family-pun { font-size: 0.58rem; color: #fde68a; font-style: italic; text-align: center; margin-top: 2px; opacity: 0.85; }
 .toast.family-toast .family-label { font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
@@ -315,10 +317,29 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .duel-settings .ds-order-btns { display: flex; gap: 4px; }
 .duel-settings .ds-order-btns button { font-size: 0.62rem; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-weight: 600; }
 .duel-settings .ds-order-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.duel-settings .ds-timer-wrap { display: flex; align-items: center; gap: 6px; }
+.duel-settings .ds-timer-wrap input[type="number"] { width: 42px; padding: 3px 4px; border-radius: 5px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 0.72rem; text-align: center; -moz-appearance: textfield; }
+.duel-settings .ds-timer-wrap input[type="number"]::-webkit-inner-spin-button,
+.duel-settings .ds-timer-wrap input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.duel-settings .ds-timer-wrap span.ds-timer-sep { font-size: 0.72rem; color: var(--text-dim); }
+.duel-settings .ds-timer-wrap .ds-timer-off { font-size: 0.62rem; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-weight: 600; }
+.duel-settings .ds-timer-wrap .ds-timer-off.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.countdown-display { font-size: 0.75rem; font-weight: 700; color: var(--accent); margin-left: 8px; }
+.countdown-display.warning { color: #ef4444; animation: pulse-warn 1s ease-in-out infinite; }
+@keyframes pulse-warn { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 .duel-link-box { display: flex; align-items: center; gap: 6px; margin: 16px auto; max-width: 400px; }
 .duel-link-box input { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 10px; font-size: 0.8rem; }
 .duel-link-box .btn { flex-shrink: 0; }
 .duel-status { color: var(--text-pinyin); font-size: 0.85rem; margin-top: 12px; }
+.room-code-display { font-family: 'Courier New', Courier, monospace; font-size: 2rem; font-weight: 900; letter-spacing: 0.35em; color: var(--accent); background: var(--input-bg); border: 2px dashed var(--accent); border-radius: 10px; padding: 12px 24px; display: inline-block; margin: 12px 0 4px; user-select: all; }
+.lobby-or-divider { display: flex; align-items: center; gap: 14px; margin: 24px auto; max-width: 340px; color: var(--text-dim); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.lobby-or-divider::before, .lobby-or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.join-room-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 14px; margin: 0 auto; max-width: 340px; text-align: center; }
+.join-room-section .jr-title { font-size: 0.78rem; font-weight: 800; color: var(--text); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.join-room-section .jr-row { display: flex; align-items: center; gap: 6px; }
+.join-room-section .jr-row input { flex: 1; font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; text-align: center; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 10px 10px; }
+.join-room-section .jr-row input::placeholder { font-family: inherit; letter-spacing: 0.15em; font-weight: 400; font-size: 0.8rem; color: var(--text-dim); text-transform: none; }
+.join-room-section .jr-row .btn { flex-shrink: 0; padding: 10px 18px; }
 .duel-sticky { padding: 6px 0 4px; border-top: 1px solid var(--border); margin-top: 6px; }
 .duel-score { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .duel-score .ds-blue { color: #60a5fa; }
@@ -426,6 +447,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
         <div class="setting-row" id="dset-cycle"><span class="setting-label">Cycle Forms</span><div class="toggle-switch on" id="dtog-cycle"></div></div>
         <div class="setting-row" id="dset-scroll"><span class="setting-label">Auto-scroll</span><div class="toggle-switch on" id="dtog-scroll"></div></div>
         <div class="setting-row" id="dset-hover"><span class="setting-label">Details on Hover</span><div class="toggle-switch on" id="dtog-hover"></div></div>
+        <div class="setting-row" id="dset-typebg"><span class="setting-label">Type Backgrounds</span><div class="toggle-switch on" id="dtog-typebg"></div></div>
         <div class="settings-divider"></div>
         <div class="settings-section-label">Theme</div>
         <div class="setting-row-slider">
@@ -461,6 +483,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
         <div class="setting-row" id="cset-cycle"><span class="setting-label">Cycle Forms</span><div class="toggle-switch on" id="ctog-cycle"></div></div>
         <div class="setting-row" id="cset-scroll"><span class="setting-label">Auto-scroll</span><div class="toggle-switch on" id="ctog-scroll"></div></div>
         <div class="setting-row" id="cset-hover"><span class="setting-label">Details on Hover</span><div class="toggle-switch on" id="ctog-hover"></div></div>
+        <div class="setting-row" id="cset-typebg"><span class="setting-label">Type Backgrounds</span><div class="toggle-switch on" id="ctog-typebg"></div></div>
         <div class="settings-divider"></div>
         <div class="settings-section-label">Theme</div>
         <div class="setting-row-slider">
@@ -630,6 +653,39 @@ const Q = (function() {
     return (keyToIndices[q] || []).filter(i => !foundSet.has(i));
   }
 
+  function getRelevantFoundSet() {
+    if (currentTab === 'duel') return duelMyRevealed;
+    if (currentTab === 'coop') return coopRevealed;
+    return foundSet;
+  }
+
+  function hasUnrevealedExtension(q) {
+    var revealed = getRelevantFoundSet();
+    for (var ki = 0; ki < allKeys.length; ki++) {
+      var k = allKeys[ki];
+      if (k.length > q.length && k.startsWith(q)) {
+        var kIndices = keyToIndices[k];
+        for (var ii = 0; ii < kIndices.length; ii++) {
+          if (!revealed.has(kIndices[ii])) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function flashInputDupe() {
+    $input.classList.add('flash-amber');
+    setTimeout(function() { $input.classList.remove('flash-amber'); }, 400);
+  }
+
+  function toastDupe(w) {
+    var el = document.createElement('div');
+    el.className = 'toast toast-dupe';
+    el.innerHTML = '<img src="' + w.s + '" alt=""> ' + w.n + ' — already found!';
+    $toasts.appendChild(el);
+    setTimeout(function() { el.remove(); }, 2000);
+  }
+
   function fmtTime(ms) {
     const s = Math.floor(ms / 1000);
     const hrs = Math.floor(s / 3600);
@@ -646,6 +702,44 @@ const Q = (function() {
     timerInterval = setInterval(() => { elapsedMs = Date.now() - startTime; $timer.textContent = fmtTime(elapsedMs); }, 250);
   }
   function stopTimer() { timerRunning = false; clearInterval(timerInterval); }
+
+  var countdownInterval = null;
+  var countdownEndTime = 0;
+  function getCountdownEl() {
+    if (duelActive) return $('duel-countdown');
+    if (coopActive) return $('coop-countdown');
+    return null;
+  }
+  function startCountdown(totalMs) {
+    stopCountdown();
+    if (!totalMs || totalMs <= 0) return;
+    countdownEndTime = Date.now() + totalMs;
+    var cdEl = getCountdownEl();
+    if (cdEl) { cdEl.style.display = ''; cdEl.textContent = '⏱ ' + fmtTime(totalMs); }
+    countdownInterval = setInterval(function() {
+      if (paused) { countdownEndTime += 250; return; }
+      var remaining = countdownEndTime - Date.now();
+      var el = getCountdownEl();
+      if (remaining <= 0) {
+        remaining = 0;
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        if (el) el.textContent = '⏱ 00:00';
+        if (duelActive && !duelFinishMe) duelFinish();
+        else if (coopActive && !coopFinishMe) coopFinish();
+        return;
+      }
+      if (el) {
+        el.textContent = '⏱ ' + fmtTime(remaining);
+        el.classList.toggle('warning', remaining <= 60000);
+      }
+    }, 250);
+  }
+  function stopCountdown() {
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+    var el = getCountdownEl();
+    if (el) el.style.display = 'none';
+  }
 
   // ── Highscore ──
 
@@ -850,11 +944,24 @@ const Q = (function() {
   }
 
   function refreshTypeBgs() {
-    if (currentTab !== 'pokemon') return;
-    foundSet.forEach(i => {
-      const c = $('c' + i);
-      if (c && items[i]) applyTypeBg(c, items[i]);
-    });
+    if (currentTab === 'pokemon') {
+      foundSet.forEach(i => {
+        const c = $('c' + i);
+        if (c && items[i]) applyTypeBg(c, items[i]);
+      });
+    } else if (currentTab === 'duel') {
+      duelMyRevealed.forEach(i => {
+        const c = $('c' + i);
+        if (c && items[i]) applyTypeBg(c, items[i]);
+      });
+    } else if (currentTab === 'coop') {
+      coopRevealed.forEach(i => {
+        const c = $('c' + i);
+        if (c && items[i]) applyTypeBg(c, items[i]);
+      });
+    } else {
+      return;
+    }
     document.querySelectorAll('.card.missed').forEach(card => {
       const m = card.id && card.id.match(/^c(\d+)$/);
       if (m) { const idx = parseInt(m[1]); if (items[idx]) applyTypeBg(card, items[idx]); }
@@ -1490,8 +1597,15 @@ const Q = (function() {
   let duelFinishMe = false;
   let duelFinishOpponent = false;
 
+  function genRoomCode() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var code = '';
+    for (var i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return code;
+  }
+
   function duelGenId() {
-    return 'nea-' + Math.random().toString(36).substr(2, 8);
+    return 'nea-' + genRoomCode();
   }
 
   function duelCleanup() {
@@ -1504,7 +1618,7 @@ const Q = (function() {
     duelRole = null;
   }
 
-  var duelSettings = { shadows: false, orderMode: 'dex-gens' };
+  var duelSettings = { shadows: false, orderMode: 'dex-gens', timerMs: 0 };
 
   function duelShowLobby() {
     $input.style.display = 'none';
@@ -1517,9 +1631,9 @@ const Q = (function() {
       duelJoin(joinId);
     } else {
       wrap.innerHTML = '<div class="duel-lobby"><h2>⚔️ Duel Mode</h2>' +
-        '<p>Challenge a friend! One of you creates the duel, the other joins via link.</p>' +
+        '<p>Challenge a friend! One of you creates the duel, the other joins via link or room code.</p>' +
         '<div class="duel-settings">' +
-          '<div class="ds-title">Room Settings</div>' +
+          '<div class="ds-title">Create Room</div>' +
           '<div class="ds-row"><span class="ds-label">Shadows</span><div class="toggle-switch' + (duelSettings.shadows ? ' on' : '') + '" id="ds-tog-shadows"></div></div>' +
           '<div class="ds-divider"></div>' +
           '<div class="ds-row"><span class="ds-label">Order By</span>' +
@@ -1528,10 +1642,52 @@ const Q = (function() {
               '<button data-mode="dex"' + (duelSettings.orderMode === 'dex' ? ' class="active"' : '') + '>Dex Order</button>' +
               '<button data-mode="random"' + (duelSettings.orderMode === 'random' ? ' class="active"' : '') + '>Random</button>' +
             '</div></div>' +
+          '<div class="ds-divider"></div>' +
+          '<div class="ds-row"><span class="ds-label">Timer</span>' +
+            '<div class="ds-timer-wrap">' +
+              '<button class="ds-timer-off active" id="ds-timer-off">Off</button>' +
+              '<input type="number" id="ds-timer-h" min="0" max="12" value="0" title="Hours">'+
+              '<span class="ds-timer-sep">h</span>' +
+              '<input type="number" id="ds-timer-m" min="0" max="59" value="10" title="Minutes">'+
+              '<span class="ds-timer-sep">m</span>' +
+            '</div></div>' +
         '</div>' +
         '<button class="btn" id="duel-create-btn" style="font-size:0.9rem;padding:10px 28px;margin-top:10px;">Create Duel</button>' +
         '<div id="duel-link-area"></div>' +
-        '<div class="duel-status" id="duel-status"></div></div>';
+        '<div class="duel-status" id="duel-status"></div>' +
+        '<div class="lobby-or-divider">or</div>' +
+        '<div class="join-room-section" id="duel-join-section">' +
+          '<div class="jr-title">Join Room</div>' +
+          '<div class="jr-row">' +
+            '<input type="text" id="duel-join-code" maxlength="6" placeholder="Enter room code" autocomplete="off" spellcheck="false">' +
+            '<button class="btn" id="duel-join-btn">Join</button>' +
+          '</div>' +
+        '</div>' +
+        '</div>';
+
+      var dsTimerOff = $('ds-timer-off');
+      var dsTimerH = $('ds-timer-h');
+      var dsTimerM = $('ds-timer-m');
+      var dsTimerActive = false;
+      function dsUpdateTimer() {
+        if (!dsTimerActive) { duelSettings.timerMs = 0; return; }
+        var h = parseInt(dsTimerH.value) || 0, m = parseInt(dsTimerM.value) || 0;
+        var total = h * 3600000 + m * 60000;
+        if (total < 60000) { dsTimerM.value = 1; m = 1; total = 60000; }
+        if (total > 43200000) { dsTimerH.value = 12; dsTimerM.value = 0; total = 43200000; }
+        duelSettings.timerMs = total;
+      }
+      dsTimerOff.addEventListener('click', function() {
+        dsTimerActive = !dsTimerActive;
+        this.classList.toggle('active', !dsTimerActive);
+        dsTimerH.disabled = !dsTimerActive;
+        dsTimerM.disabled = !dsTimerActive;
+        dsUpdateTimer();
+      });
+      dsTimerH.disabled = true;
+      dsTimerM.disabled = true;
+      dsTimerH.addEventListener('change', dsUpdateTimer);
+      dsTimerM.addEventListener('change', dsUpdateTimer);
 
       $('ds-tog-shadows').addEventListener('click', function() {
         duelSettings.shadows = !duelSettings.shadows;
@@ -1544,7 +1700,32 @@ const Q = (function() {
         this.querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b === btn); });
       });
       $('duel-create-btn').addEventListener('click', duelCreate);
+
+      $('duel-join-code').addEventListener('input', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-Z2-9]/g, '').slice(0, 6);
+      });
+      $('duel-join-code').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') duelJoinByCode();
+      });
+      $('duel-join-btn').addEventListener('click', duelJoinByCode);
     }
+  }
+
+  function duelJoinByCode() {
+    var code = $('duel-join-code').value.trim().toUpperCase();
+    if (code.length !== 6) {
+      $('duel-status').textContent = 'Please enter a valid 6-character room code.';
+      return;
+    }
+    var hostId = 'nea-' + code;
+    $('duel-join-section').style.display = 'none';
+    $('duel-create-btn').style.display = 'none';
+    var orDiv = document.querySelector('.lobby-or-divider');
+    if (orDiv) orDiv.style.display = 'none';
+    var settings = document.querySelector('.duel-settings');
+    if (settings) settings.style.display = 'none';
+    $('duel-status').textContent = 'Joining room ' + code + '…';
+    duelJoin(hostId);
   }
 
   var duelIceConfig = { iceServers: [
@@ -1559,12 +1740,21 @@ const Q = (function() {
     $('duel-create-btn').disabled = true;
     $('duel-create-btn').textContent = 'Creating…';
     $('duel-status').textContent = 'Connecting to signaling server…';
+    var joinSec = $('duel-join-section');
+    if (joinSec) joinSec.style.display = 'none';
+    var orDiv = document.querySelector('.lobby-or-divider');
+    if (orDiv) orDiv.style.display = 'none';
 
     duelPeer = new Peer(roomId, { config: duelIceConfig });
     duelPeer.on('open', function(id) {
+      var code = id.replace('nea-', '');
       const link = window.location.origin + window.location.pathname + '?duel=' + id;
+      $('duel-join-section').style.display = 'none';
+      document.querySelector('.lobby-or-divider').style.display = 'none';
       $('duel-link-area').innerHTML =
-        '<p style="margin-top:14px;font-size:0.8rem;color:var(--text-dim)">Share this link with your opponent:</p>' +
+        '<p style="margin-top:14px;font-size:0.8rem;color:var(--text-dim)">Share this code with your opponent:</p>' +
+        '<div class="room-code-display">' + code + '</div>' +
+        '<p style="margin-top:8px;font-size:0.72rem;color:var(--text-dim)">or share this link:</p>' +
         '<div class="duel-link-box">' +
         '<input type="text" id="duel-link-input" value="' + link + '" readonly>' +
         '<button class="btn" id="duel-copy-btn">Copy</button></div>';
@@ -1673,7 +1863,7 @@ const Q = (function() {
           var t = displayOrder[i]; displayOrder[i] = displayOrder[j]; displayOrder[j] = t;
         }
       }
-      duelConn.send({ type: 'start', shadows: duelSettings.shadows, orderMode: duelSettings.orderMode, order: displayOrder });
+      duelConn.send({ type: 'start', shadows: duelSettings.shadows, orderMode: duelSettings.orderMode, order: displayOrder, timerMs: duelSettings.timerMs });
     }
 
     $('duel-settings-bar').style.display = 'flex';
@@ -1689,6 +1879,7 @@ const Q = (function() {
     duelRenderGrid();
     duelUpdateScore();
     startTimer();
+    startCountdown(duelSettings.timerMs);
     $input.focus();
 
     if (window.history.replaceState) {
@@ -1707,7 +1898,8 @@ const Q = (function() {
     $('ds-red-count').textContent = '0';
     $('duel-finish-bar').innerHTML = '<button class="btn" id="duel-pause-btn">⏸ Pause</button>' +
       '<button class="btn danger" id="duel-finish-btn">Finish</button>' +
-      '<span class="duel-finish-status" id="duel-finish-status"></span>';
+      '<span class="duel-finish-status" id="duel-finish-status"></span>' +
+      '<span class="countdown-display" id="duel-countdown" style="display:none;"></span>';
     $('duel-finish-invite').classList.remove('show');
     $('duel-pause-btn').addEventListener('click', function() { multiTogglePause('duel'); });
     $('duel-finish-btn').addEventListener('click', duelFinish);
@@ -1773,6 +1965,7 @@ const Q = (function() {
       c.querySelector('.poke-sprite').src = w.s;
       c.querySelector('.poke-name').textContent = w.n;
       c.querySelector('.poke-gen').textContent = w.g;
+      applyTypeBg(c, w);
     } else {
       if (c.classList.contains('duel-mine')) return;
       c.className = 'card duel-claimed ' + colorClass;
@@ -1812,6 +2005,7 @@ const Q = (function() {
     if (msg.type === 'start') {
       duelSettings.shadows = msg.shadows;
       duelSettings.orderMode = msg.orderMode;
+      duelSettings.timerMs = msg.timerMs || 0;
       shadowsEnabled = msg.shadows;
       $('tog-shadows').classList.toggle('on', shadowsEnabled);
       var receivedOrder = msg.order;
@@ -1868,6 +2062,7 @@ const Q = (function() {
   }
 
   function duelEnd() {
+    stopCountdown();
     duelActive = false;
     stopTimer();
     paused = false;
@@ -1875,7 +2070,6 @@ const Q = (function() {
     $input.disabled = true;
     var invite = $('duel-finish-invite');
     if (invite) invite.classList.remove('show');
-    // Reveal all unclaimed cards
     for (var i = 0; i < items.length; i++) {
       var c = $('c' + i);
       if (!c) continue;
@@ -1893,6 +2087,7 @@ const Q = (function() {
         } else {
           c.className = 'card missed';
         }
+        applyTypeBg(c, w);
       }
     }
     duelUpdateScore();
@@ -1919,11 +2114,11 @@ const Q = (function() {
   let coopRevealed = new Set();
   let coopFinishMe = false;
   let coopFinishOpponent = false;
-  var coopSettings = { shadows: false, orderMode: 'dex-gens' };
+  var coopSettings = { shadows: false, orderMode: 'dex-gens', timerMs: 0 };
   var coopConnTimeout = null;
 
   function coopGenId() {
-    return 'nea-c-' + Math.random().toString(36).substr(2, 8);
+    return 'nea-c-' + genRoomCode();
   }
 
   function coopCleanup() {
@@ -1949,7 +2144,7 @@ const Q = (function() {
       wrap.innerHTML = '<div class="duel-lobby"><h2>🤝 Co-Op Mode</h2>' +
         '<p>Team up with a friend! Complete the Pokédex together.</p>' +
         '<div class="duel-settings">' +
-          '<div class="ds-title">Room Settings</div>' +
+          '<div class="ds-title">Create Room</div>' +
           '<div class="ds-row"><span class="ds-label">Shadows</span><div class="toggle-switch' + (coopSettings.shadows ? ' on' : '') + '" id="cs-tog-shadows"></div></div>' +
           '<div class="ds-divider"></div>' +
           '<div class="ds-row"><span class="ds-label">Order By</span>' +
@@ -1958,10 +2153,52 @@ const Q = (function() {
               '<button data-mode="dex"' + (coopSettings.orderMode === 'dex' ? ' class="active"' : '') + '>Dex Order</button>' +
               '<button data-mode="random"' + (coopSettings.orderMode === 'random' ? ' class="active"' : '') + '>Random</button>' +
             '</div></div>' +
+          '<div class="ds-divider"></div>' +
+          '<div class="ds-row"><span class="ds-label">Timer</span>' +
+            '<div class="ds-timer-wrap">' +
+              '<button class="ds-timer-off active" id="cs-timer-off">Off</button>' +
+              '<input type="number" id="cs-timer-h" min="0" max="12" value="0" title="Hours">'+
+              '<span class="ds-timer-sep">h</span>' +
+              '<input type="number" id="cs-timer-m" min="0" max="59" value="10" title="Minutes">'+
+              '<span class="ds-timer-sep">m</span>' +
+            '</div></div>' +
         '</div>' +
         '<button class="btn" id="coop-create-btn" style="font-size:0.9rem;padding:10px 28px;margin-top:10px;">Create Room</button>' +
         '<div id="coop-link-area"></div>' +
-        '<div class="duel-status" id="coop-status"></div></div>';
+        '<div class="duel-status" id="coop-status"></div>' +
+        '<div class="lobby-or-divider">or</div>' +
+        '<div class="join-room-section" id="coop-join-section">' +
+          '<div class="jr-title">Join Room</div>' +
+          '<div class="jr-row">' +
+            '<input type="text" id="coop-join-code" maxlength="6" placeholder="Enter room code" autocomplete="off" spellcheck="false">' +
+            '<button class="btn" id="coop-join-btn">Join</button>' +
+          '</div>' +
+        '</div>' +
+        '</div>';
+
+      var csTimerOff = $('cs-timer-off');
+      var csTimerH = $('cs-timer-h');
+      var csTimerM = $('cs-timer-m');
+      var csTimerActive = false;
+      function csUpdateTimer() {
+        if (!csTimerActive) { coopSettings.timerMs = 0; return; }
+        var h = parseInt(csTimerH.value) || 0, m = parseInt(csTimerM.value) || 0;
+        var total = h * 3600000 + m * 60000;
+        if (total < 60000) { csTimerM.value = 1; m = 1; total = 60000; }
+        if (total > 43200000) { csTimerH.value = 12; csTimerM.value = 0; total = 43200000; }
+        coopSettings.timerMs = total;
+      }
+      csTimerOff.addEventListener('click', function() {
+        csTimerActive = !csTimerActive;
+        this.classList.toggle('active', !csTimerActive);
+        csTimerH.disabled = !csTimerActive;
+        csTimerM.disabled = !csTimerActive;
+        csUpdateTimer();
+      });
+      csTimerH.disabled = true;
+      csTimerM.disabled = true;
+      csTimerH.addEventListener('change', csUpdateTimer);
+      csTimerM.addEventListener('change', csUpdateTimer);
 
       $('cs-tog-shadows').addEventListener('click', function() {
         coopSettings.shadows = !coopSettings.shadows;
@@ -1974,7 +2211,32 @@ const Q = (function() {
         this.querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b === btn); });
       });
       $('coop-create-btn').addEventListener('click', coopCreate);
+
+      $('coop-join-code').addEventListener('input', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-Z2-9]/g, '').slice(0, 6);
+      });
+      $('coop-join-code').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') coopJoinByCode();
+      });
+      $('coop-join-btn').addEventListener('click', coopJoinByCode);
     }
+  }
+
+  function coopJoinByCode() {
+    var code = $('coop-join-code').value.trim().toUpperCase();
+    if (code.length !== 6) {
+      $('coop-status').textContent = 'Please enter a valid 6-character room code.';
+      return;
+    }
+    var hostId = 'nea-c-' + code;
+    $('coop-join-section').style.display = 'none';
+    $('coop-create-btn').style.display = 'none';
+    var orDiv = document.querySelector('.duel-lobby .lobby-or-divider');
+    if (orDiv) orDiv.style.display = 'none';
+    var settings = document.querySelector('.duel-lobby .duel-settings');
+    if (settings) settings.style.display = 'none';
+    $('coop-status').textContent = 'Joining room ' + code + '…';
+    coopJoin(hostId);
   }
 
   function coopCreate() {
@@ -1983,12 +2245,22 @@ const Q = (function() {
     $('coop-create-btn').disabled = true;
     $('coop-create-btn').textContent = 'Creating…';
     $('coop-status').textContent = 'Connecting to signaling server…';
+    var joinSec = $('coop-join-section');
+    if (joinSec) joinSec.style.display = 'none';
+    var orDiv = document.querySelector('.duel-lobby .lobby-or-divider');
+    if (orDiv) orDiv.style.display = 'none';
 
     coopPeer = new Peer(roomId, { config: duelIceConfig });
     coopPeer.on('open', function(id) {
+      var code = id.replace('nea-c-', '');
       const link = window.location.origin + window.location.pathname + '?coop=' + id;
+      $('coop-join-section').style.display = 'none';
+      var orDiv = document.querySelector('.duel-lobby .lobby-or-divider');
+      if (orDiv) orDiv.style.display = 'none';
       $('coop-link-area').innerHTML =
-        '<p style="margin-top:14px;font-size:0.8rem;color:var(--text-dim)">Share this link with your partner:</p>' +
+        '<p style="margin-top:14px;font-size:0.8rem;color:var(--text-dim)">Share this code with your partner:</p>' +
+        '<div class="room-code-display">' + code + '</div>' +
+        '<p style="margin-top:8px;font-size:0.72rem;color:var(--text-dim)">or share this link:</p>' +
         '<div class="duel-link-box">' +
         '<input type="text" id="coop-link-input" value="' + link + '" readonly>' +
         '<button class="btn" id="coop-copy-btn">Copy</button></div>';
@@ -2095,7 +2367,7 @@ const Q = (function() {
           var t = displayOrder[i]; displayOrder[i] = displayOrder[j]; displayOrder[j] = t;
         }
       }
-      coopConn.send({ type: 'start', shadows: coopSettings.shadows, orderMode: coopSettings.orderMode, order: displayOrder });
+      coopConn.send({ type: 'start', shadows: coopSettings.shadows, orderMode: coopSettings.orderMode, order: displayOrder, timerMs: coopSettings.timerMs });
     }
 
     $('coop-settings-bar').style.display = 'flex';
@@ -2111,6 +2383,7 @@ const Q = (function() {
     coopRenderGrid();
     coopUpdateScore();
     startTimer();
+    startCountdown(coopSettings.timerMs);
     $input.focus();
 
     if (window.history.replaceState) {
@@ -2129,7 +2402,8 @@ const Q = (function() {
     $('cs-remaining-count').textContent = items.length;
     $('coop-finish-bar').innerHTML = '<button class="btn" id="coop-pause-btn">⏸ Pause</button>' +
       '<button class="btn danger" id="coop-finish-btn">Finish</button>' +
-      '<span class="duel-finish-status" id="coop-finish-status"></span>';
+      '<span class="duel-finish-status" id="coop-finish-status"></span>' +
+      '<span class="countdown-display" id="coop-countdown" style="display:none;"></span>';
     $('coop-finish-invite').classList.remove('show');
     $('coop-pause-btn').addEventListener('click', function() { multiTogglePause('coop'); });
     $('coop-finish-btn').addEventListener('click', coopFinish);
@@ -2190,6 +2464,7 @@ const Q = (function() {
     c.querySelector('.poke-sprite').src = w.s;
     c.querySelector('.poke-name').textContent = w.n;
     c.querySelector('.poke-gen').textContent = w.g;
+    applyTypeBg(c, w);
   }
 
   function coopHandleInput(val) {
@@ -2204,6 +2479,10 @@ const Q = (function() {
         newReveals.push(idx);
       }
       if (newReveals.length > 0) {
+        var prevMine = document.querySelector('.card.coop-last-mine');
+        if (prevMine) prevMine.classList.remove('coop-last-mine');
+        var lastCard = $('c' + newReveals[newReveals.length - 1]);
+        if (lastCard) lastCard.classList.add('coop-last-mine');
         coopConn.send({ type: 'reveal', indices: newReveals });
         for (var ri = 0; ri < newReveals.length; ri++) toast(items[newReveals[ri]]);
         if (soundEnabled) playCry(items[newReveals[0]].id);
@@ -2224,6 +2503,7 @@ const Q = (function() {
     if (msg.type === 'start') {
       coopSettings.shadows = msg.shadows;
       coopSettings.orderMode = msg.orderMode;
+      coopSettings.timerMs = msg.timerMs || 0;
       shadowsEnabled = msg.shadows;
       var receivedOrder = msg.order;
       if (coopRole === 'guest') {
@@ -2249,8 +2529,15 @@ const Q = (function() {
         }
       }
       if (remoteNew.length > 0) {
+        var prevPartner = document.querySelector('.card.coop-last-partner');
+        if (prevPartner) prevPartner.classList.remove('coop-last-partner');
+        var partnerCard = $('c' + remoteNew[remoteNew.length - 1]);
+        if (partnerCard) partnerCard.classList.add('coop-last-partner');
         if (soundEnabled) playCry(items[remoteNew[0]].id);
         checkFamilyComplete(remoteNew.map(function(i) { return items[i].id; }));
+        if (autoScrollEnabled) setTimeout(function() {
+          if (partnerCard) partnerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
       }
       coopUpdateScore();
       if (coopRevealed.size === items.length) { stopTimer(); coopEnd(); }
@@ -2284,6 +2571,7 @@ const Q = (function() {
   }
 
   function coopEnd() {
+    stopCountdown();
     coopActive = false;
     stopTimer();
     paused = false;
@@ -2303,6 +2591,7 @@ const Q = (function() {
         var gn = c.querySelector('.poke-gen');
         if (gn) gn.textContent = w.g;
         c.className = 'card missed';
+        applyTypeBg(c, w);
       }
     }
     coopUpdateScore();
@@ -2371,7 +2660,7 @@ const Q = (function() {
     if ((isPoke || isMulti) && !pokeDetails) {
       fetch('pokemon_details.json').then(r => r.json()).then(data => {
         pokeDetails = data;
-        if (isPoke) refreshTypeBgs();
+        refreshTypeBgs();
       }).catch(() => {});
     }
 
@@ -2626,11 +2915,19 @@ const Q = (function() {
     autoScrollEnabled = !autoScrollEnabled; syncScrollToggles(); saveSettings();
   });
 
-  $('set-typebg').addEventListener('click', function() {
-    typeBgEnabled = !typeBgEnabled;
+  function syncTypeBgToggles() {
     $('tog-typebg').classList.toggle('on', typeBgEnabled);
-    refreshTypeBgs();
-    saveSettings();
+    $('dtog-typebg').classList.toggle('on', typeBgEnabled);
+    $('ctog-typebg').classList.toggle('on', typeBgEnabled);
+  }
+  $('set-typebg').addEventListener('click', function() {
+    typeBgEnabled = !typeBgEnabled; syncTypeBgToggles(); refreshTypeBgs(); saveSettings();
+  });
+  $('dset-typebg').addEventListener('click', function() {
+    typeBgEnabled = !typeBgEnabled; syncTypeBgToggles(); refreshTypeBgs(); saveSettings();
+  });
+  $('cset-typebg').addEventListener('click', function() {
+    typeBgEnabled = !typeBgEnabled; syncTypeBgToggles(); refreshTypeBgs(); saveSettings();
   });
 
   function syncHoverToggles() {
@@ -2668,7 +2965,7 @@ const Q = (function() {
   $('tog-shadows').classList.toggle('on', shadowsEnabled);
   syncCycleToggles();
   syncScrollToggles();
-  $('tog-typebg').classList.toggle('on', typeBgEnabled);
+  syncTypeBgToggles();
   syncHoverToggles();
   $('mode-slider').querySelectorAll('button').forEach(function(b) { b.classList.toggle('active', b.dataset.order === orderMode); });
 
