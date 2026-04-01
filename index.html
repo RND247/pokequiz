@@ -140,27 +140,26 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
 
 /* ── Pokemon cards ── */
 .poke-placeholder { font-size: 2rem; font-weight: 900; color: var(--text-dim); opacity: 0.18; font-style: italic; text-shadow: 0 0 8px rgba(56,189,248,0.15); user-select: none; line-height: 1; }
-.poke-shadow { width: 56px; height: 56px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(56,189,248,0.3)); opacity: 0.4; display: none; }
-body.light .poke-shadow { filter: brightness(0) drop-shadow(0 0 3px rgba(0,0,0,0.2)); opacity: 0.25; }
 body.light .wtp-img.shadow { filter: brightness(0) drop-shadow(0 0 6px rgba(0,0,0,0.2)); }
 
-.card.unrevealed .poke-sprite { display: none; }
+.card .poke-sprite { width: 56px; height: 56px; object-fit: contain; }
+.card.unrevealed .poke-sprite { filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(56,189,248,0.3)); opacity: 0; }
+body.light .card.unrevealed .poke-sprite { filter: brightness(0) drop-shadow(0 0 3px rgba(0,0,0,0.2)); }
 .card.unrevealed .poke-name { display: none; }
 .card.unrevealed .poke-gen { display: none; }
 
 .shadows-on .card.unrevealed .poke-placeholder { display: none; }
-.shadows-on .card.unrevealed .poke-shadow { display: block; }
+.shadows-on .card.unrevealed .poke-sprite { opacity: 0.4; }
+body.light .shadows-on .card.unrevealed .poke-sprite { opacity: 0.25; }
 
 .card.found .poke-placeholder { display: none; }
-.card.found .poke-shadow { display: none; }
-.card.found .poke-sprite { width: 56px; height: 56px; object-fit: contain; }
+.card.found .poke-sprite { filter: none; opacity: 1; }
 .card.found .poke-name { font-size: 0.48rem; color: var(--text); margin-top: 2px; font-weight: 600; }
 .card.found .poke-gen { font-size: 0.38rem; color: var(--text-dim); }
 .card.found[data-pid] { cursor: pointer; }
 
 .card.missed .poke-placeholder { display: none; }
-.card.missed .poke-shadow { display: none; }
-.card.missed .poke-sprite { width: 56px; height: 56px; object-fit: contain; filter: grayscale(1) opacity(0.5); }
+.card.missed .poke-sprite { filter: grayscale(1) opacity(0.5); opacity: 1; }
 .card.missed .poke-name { font-size: 0.48rem; color: var(--accent); opacity: 0.7; margin-top: 2px; font-weight: 600; }
 .card.missed .poke-gen { font-size: 0.38rem; color: var(--accent); opacity: 0.4; }
 .card.missed[data-pid] { cursor: pointer; }
@@ -360,16 +359,14 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .card.duel-blue { border-color: #60a5fa; box-shadow: 0 0 6px rgba(96,165,250,0.3); }
 .card.duel-red { border-color: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.3); }
 .card.duel-claimed .poke-placeholder { display: none; }
-.card.duel-claimed .poke-shadow { display: none; }
-.card.duel-claimed .poke-sprite { display: none; }
+.card.duel-claimed .poke-sprite { opacity: 0; }
 .card.duel-claimed .poke-name { display: none; }
 .card.duel-claimed .poke-gen { display: none; }
 .card.duel-claimed .rank { display: none; }
 .card.duel-claimed.duel-blue { background: rgba(96,165,250,0.25); }
 .card.duel-claimed.duel-red { background: rgba(248,113,113,0.25); }
 .card.duel-mine .poke-placeholder { display: none; }
-.card.duel-mine .poke-shadow { display: none; }
-.card.duel-mine .poke-sprite { width: 56px; height: 56px; object-fit: contain; }
+.card.duel-mine .poke-sprite { filter: none; opacity: 1; }
 .card.duel-mine .poke-name { font-size: 0.45rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 92%; text-align: center; }
 .card.duel-mine .poke-gen { font-size: 0.4rem; color: var(--text-dim); }
 .duel-finish-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 4px 0 6px; }
@@ -388,8 +385,7 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .coop-score .cs-neutral { color: var(--text-dim); }
 .card.coop-found { border-color: #34d399; box-shadow: 0 0 6px rgba(52,211,153,0.3); }
 .card.coop-found .poke-placeholder { display: none; }
-.card.coop-found .poke-shadow { display: none; }
-.card.coop-found .poke-sprite { width: 56px; height: 56px; object-fit: contain; }
+.card.coop-found .poke-sprite { filter: none; opacity: 1; }
 .card.coop-found .poke-name { font-size: 0.45rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 92%; text-align: center; }
 .card.coop-found .poke-gen { font-size: 0.4rem; color: var(--text-dim); }
 </style>
@@ -937,8 +933,7 @@ const Q = (function() {
     } else {
       c.innerHTML = '<span class="rank">#' + w.id + '</span>' +
         '<div class="poke-placeholder">?</div>' +
-        '<img class="poke-shadow" src="' + w.s + '" alt="" loading="lazy">' +
-        '<img class="poke-sprite" alt="" loading="lazy">' +
+        '<img class="poke-sprite" src="' + w.s + '" alt="" loading="lazy">' +
         '<div class="poke-name"></div><div class="poke-gen"></div>';
       c.dataset.pid = w.id;
     }
@@ -991,7 +986,7 @@ const Q = (function() {
 
   document.addEventListener('error', function(e) {
     var img = e.target;
-    if (img.tagName !== 'IMG' || !img.classList.contains('poke-sprite') && !img.classList.contains('poke-shadow')) return;
+    if (img.tagName !== 'IMG' || !img.classList.contains('poke-sprite')) return;
     var retries = parseInt(img.dataset.retries || '0');
     if (retries >= 3) return;
     img.dataset.retries = retries + 1;
@@ -2892,18 +2887,7 @@ const Q = (function() {
     const restored = load();
     renderGrid();
     if (restored) {
-      var restoreArr = Array.from(foundSet);
-      var batchSize = 30;
-      function restoreBatch(start) {
-        var end = Math.min(start + batchSize, restoreArr.length);
-        for (var ri = start; ri < end; ri++) {
-          var idx = restoreArr[ri];
-          var c = $('c' + idx);
-          if (c) { c.className = 'card found'; revealCardContent(idx); }
-        }
-        if (end < restoreArr.length) setTimeout(function() { restoreBatch(end); }, 50);
-      }
-      restoreBatch(0);
+      foundSet.forEach(i => { const c = $('c' + i); if (c) { c.className = 'card found'; revealCardContent(i); } });
       $timer.textContent = fmtTime(elapsedMs);
       if (currentTab === 'pokemon' && pokeFamilies) {
         const idToIdx = {};
