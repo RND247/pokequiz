@@ -329,6 +329,13 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .duel-settings .ds-timer-wrap span.ds-timer-sep { font-size: 0.72rem; color: var(--text-dim); }
 .duel-settings .ds-timer-wrap .ds-timer-off { font-size: 0.62rem; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-weight: 600; }
 .duel-settings .ds-timer-wrap .ds-timer-off.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.gen-selector { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.gen-selector button { font-size: 0.62rem; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-weight: 600; min-width: 28px; }
+.gen-selector button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.gen-selector-wrap { display: flex; flex-direction: column; gap: 6px; }
+.gen-selector-actions { display: flex; gap: 6px; justify-content: center; }
+.gen-selector-actions button { font-size: 0.58rem; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; font-weight: 600; }
+.gen-selector-actions button:hover { color: var(--text); border-color: var(--text-dim); }
 .countdown-display { font-size: 0.75rem; font-weight: 700; color: var(--accent); margin-left: 8px; }
 .countdown-display.warning { color: #ef4444; animation: pulse-warn 1s ease-in-out infinite; }
 @keyframes pulse-warn { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -425,6 +432,11 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
             <button id="btn-random" data-order="random">Random</button>
           </div>
         </div>
+        <div class="settings-divider"></div>
+        </div>
+        <div id="set-gens-section">
+        <div class="settings-section-label">Generations</div>
+        <div class="setting-row-slider" id="reg-gen-selector-wrap"></div>
         <div class="settings-divider"></div>
         </div>
         <div class="setting-row" id="set-sound"><span class="setting-label">Sound (Cries)</span><div class="toggle-switch on" id="tog-sound"></div></div>
@@ -598,8 +610,9 @@ const Q = (function() {
   let typeBgEnabled = _savedSettings.typebg !== undefined ? _savedSettings.typebg : true;
   let hoverEnabled = _savedSettings.hover !== undefined ? _savedSettings.hover : true;
   let orderMode = _savedSettings.order || 'dex-gens';
+  let selectedGens = new Set(_savedSettings.gens && _savedSettings.gens.length ? _savedSettings.gens : [1,2,3,4,5,6,7,8,9]);
   function saveSettings() {
-    localStorage.setItem('namemall_settings', JSON.stringify({ sound: soundEnabled, shadows: shadowsEnabled, cycle: cycleFormsEnabled, scroll: autoScrollEnabled, typebg: typeBgEnabled, hover: hoverEnabled, order: orderMode }));
+    localStorage.setItem('namemall_settings', JSON.stringify({ sound: soundEnabled, shadows: shadowsEnabled, cycle: cycleFormsEnabled, scroll: autoScrollEnabled, typebg: typeBgEnabled, hover: hoverEnabled, order: orderMode, gens: Array.from(selectedGens) }));
   }
 
   let keyToIndices = {};
@@ -829,6 +842,55 @@ const Q = (function() {
     return m.length > 22 ? m.slice(0, 20) + '…' : m;
   }
   function fullMeaning(w) { return w.m.slice(0, 4).map(m => m.split(';')[0].trim()).join('; '); }
+
+  function filterByGens(data, gens) {
+    if (gens.size === 9) return data;
+    return data.filter(function(p) { return gens.has(REGION_GEN[p.g]); });
+  }
+
+  function buildGenSelectorHTML(prefix, activeGens) {
+    var html = '<div class="gen-selector-wrap"><div class="gen-selector" id="' + prefix + '-gen-btns">';
+    for (var g = 1; g <= 9; g++) {
+      html += '<button data-gen="' + g + '"' + (activeGens.has(g) ? ' class="active"' : '') + '>' + g + '</button>';
+    }
+    html += '</div><div class="gen-selector-actions">' +
+      '<button data-action="all" id="' + prefix + '-gen-all">All</button>' +
+      '<button data-action="none" id="' + prefix + '-gen-none">None</button>' +
+      '</div></div>';
+    return html;
+  }
+
+  function wireGenSelector(prefix, gensSet, onChange) {
+    var container = $(prefix + '-gen-btns');
+    container.addEventListener('click', function(e) {
+      var btn = e.target.closest('button');
+      if (!btn || !btn.dataset.gen) return;
+      var g = parseInt(btn.dataset.gen);
+      if (gensSet.has(g)) {
+        if (gensSet.size <= 1) return;
+        gensSet.delete(g);
+        btn.classList.remove('active');
+      } else {
+        gensSet.add(g);
+        btn.classList.add('active');
+      }
+      if (onChange) onChange();
+    });
+    $(prefix + '-gen-all').addEventListener('click', function() {
+      for (var g = 1; g <= 9; g++) gensSet.add(g);
+      container.querySelectorAll('button').forEach(function(b) { b.classList.add('active'); });
+      if (onChange) onChange();
+    });
+    $(prefix + '-gen-none').addEventListener('click', function() {
+      var first = gensSet.values().next().value;
+      gensSet.clear();
+      gensSet.add(first);
+      container.querySelectorAll('button').forEach(function(b) {
+        b.classList.toggle('active', parseInt(b.dataset.gen) === first);
+      });
+      if (onChange) onChange();
+    });
+  }
 
   // ── Render grid ──
 
@@ -1391,11 +1453,14 @@ const Q = (function() {
   // ── Save / Load ──
 
   function saveKey() { return 'langquiz_' + currentTab; }
-  function save() { localStorage.setItem(saveKey(), JSON.stringify({ f: Array.from(foundSet), e: elapsedMs, o: displayOrder })); }
+  function save() { localStorage.setItem(saveKey(), JSON.stringify({ f: Array.from(foundSet), e: elapsedMs, o: displayOrder, g: Array.from(selectedGens) })); }
   function load() {
     try {
       const d = JSON.parse(localStorage.getItem(saveKey()));
-      if (d && d.f && d.f.length) { foundSet = new Set(d.f); elapsedMs = d.e || 0; if (d.o && d.o.length === items.length) displayOrder = d.o; return true; }
+      if (d && d.f && d.f.length) {
+        if (d.g) { var savedGens = new Set(d.g); if (savedGens.size !== selectedGens.size || ![...savedGens].every(g => selectedGens.has(g))) return false; }
+        foundSet = new Set(d.f); elapsedMs = d.e || 0; if (d.o && d.o.length === items.length) displayOrder = d.o; return true;
+      }
     } catch(e) {}
     return false;
   }
@@ -1631,7 +1696,7 @@ const Q = (function() {
     duelRole = null;
   }
 
-  var duelSettings = { shadows: false, orderMode: 'dex-gens', timerMs: 0 };
+  var duelSettings = { shadows: false, orderMode: 'dex-gens', timerMs: 0, gens: new Set([1,2,3,4,5,6,7,8,9]) };
 
   function duelShowLobby() {
     $input.style.display = 'none';
@@ -1656,6 +1721,9 @@ const Q = (function() {
               '<button data-mode="dex"' + (duelSettings.orderMode === 'dex' ? ' class="active"' : '') + '>Dex Order</button>' +
               '<button data-mode="random"' + (duelSettings.orderMode === 'random' ? ' class="active"' : '') + '>Random</button>' +
             '</div></div>' +
+          '<div class="ds-divider"></div>' +
+          '<div class="ds-row"><span class="ds-label">Generations</span></div>' +
+          '<div id="ds-gen-selector-wrap"></div>' +
           '<div class="ds-divider"></div>' +
           '<div class="ds-row"><span class="ds-label">Timer</span>' +
             '<div class="ds-timer-wrap">' +
@@ -1722,6 +1790,9 @@ const Q = (function() {
         if (e.key === 'Enter') duelJoinByCode();
       });
       $('duel-join-btn').addEventListener('click', duelJoinByCode);
+
+      $('ds-gen-selector-wrap').innerHTML = buildGenSelectorHTML('ds', duelSettings.gens);
+      wireGenSelector('ds', duelSettings.gens);
     }
   }
 
@@ -1856,7 +1927,11 @@ const Q = (function() {
   }
 
   function duelStart(data) {
-    items = data;
+    if (duelRole === 'blue') {
+      items = filterByGens(data, duelSettings.gens);
+    } else {
+      items = filterByGens(data, duelSettings.gens);
+    }
     duelActive = true;
     duelBlue = new Set();
     duelRed = new Set();
@@ -1877,7 +1952,7 @@ const Q = (function() {
           var t = displayOrder[i]; displayOrder[i] = displayOrder[j]; displayOrder[j] = t;
         }
       }
-      duelConn.send({ type: 'start', shadows: duelSettings.shadows, orderMode: duelSettings.orderMode, order: displayOrder, timerMs: duelSettings.timerMs });
+      duelConn.send({ type: 'start', shadows: duelSettings.shadows, orderMode: duelSettings.orderMode, order: displayOrder, timerMs: duelSettings.timerMs, gens: Array.from(duelSettings.gens) });
     }
 
     $('duel-settings-bar').style.display = 'flex';
@@ -2028,6 +2103,7 @@ const Q = (function() {
       duelSettings.shadows = msg.shadows;
       duelSettings.orderMode = msg.orderMode;
       duelSettings.timerMs = msg.timerMs || 0;
+      duelSettings.gens = new Set(msg.gens || [1,2,3,4,5,6,7,8,9]);
       shadowsEnabled = msg.shadows;
       $('tog-shadows').classList.toggle('on', shadowsEnabled);
       var receivedOrder = msg.order;
@@ -2136,7 +2212,7 @@ const Q = (function() {
   let coopRevealed = new Set();
   let coopFinishMe = false;
   let coopFinishOpponent = false;
-  var coopSettings = { shadows: false, orderMode: 'dex-gens', timerMs: 0 };
+  var coopSettings = { shadows: false, orderMode: 'dex-gens', timerMs: 0, gens: new Set([1,2,3,4,5,6,7,8,9]) };
   var coopConnTimeout = null;
 
   function coopGenId() {
@@ -2176,6 +2252,9 @@ const Q = (function() {
               '<button data-mode="dex"' + (coopSettings.orderMode === 'dex' ? ' class="active"' : '') + '>Dex Order</button>' +
               '<button data-mode="random"' + (coopSettings.orderMode === 'random' ? ' class="active"' : '') + '>Random</button>' +
             '</div></div>' +
+          '<div class="ds-divider"></div>' +
+          '<div class="ds-row"><span class="ds-label">Generations</span></div>' +
+          '<div id="cs-gen-selector-wrap"></div>' +
           '<div class="ds-divider"></div>' +
           '<div class="ds-row"><span class="ds-label">Timer</span>' +
             '<div class="ds-timer-wrap">' +
@@ -2242,6 +2321,9 @@ const Q = (function() {
         if (e.key === 'Enter') coopJoinByCode();
       });
       $('coop-join-btn').addEventListener('click', coopJoinByCode);
+
+      $('cs-gen-selector-wrap').innerHTML = buildGenSelectorHTML('cs', coopSettings.gens);
+      wireGenSelector('cs', coopSettings.gens);
     }
   }
 
@@ -2371,7 +2453,7 @@ const Q = (function() {
   }
 
   function coopStart(data) {
-    items = data;
+    items = filterByGens(data, coopSettings.gens);
     coopActive = true;
     coopRevealed = new Set();
     coopFinishMe = false;
@@ -2391,7 +2473,7 @@ const Q = (function() {
           var t = displayOrder[i]; displayOrder[i] = displayOrder[j]; displayOrder[j] = t;
         }
       }
-      coopConn.send({ type: 'start', shadows: coopSettings.shadows, orderMode: coopSettings.orderMode, order: displayOrder, timerMs: coopSettings.timerMs });
+      coopConn.send({ type: 'start', shadows: coopSettings.shadows, orderMode: coopSettings.orderMode, order: displayOrder, timerMs: coopSettings.timerMs, gens: Array.from(coopSettings.gens) });
     }
 
     $('coop-settings-bar').style.display = 'flex';
@@ -2543,6 +2625,7 @@ const Q = (function() {
       coopSettings.shadows = msg.shadows;
       coopSettings.orderMode = msg.orderMode;
       coopSettings.timerMs = msg.timerMs || 0;
+      coopSettings.gens = new Set(msg.gens || [1,2,3,4,5,6,7,8,9]);
       shadowsEnabled = msg.shadows;
       var receivedOrder = msg.order;
       if (coopRole === 'guest') {
@@ -2683,6 +2766,7 @@ const Q = (function() {
     if (!isPoke) stopCycleForms();
     else if (cycleFormsEnabled) startCycleForms();
     $('set-order-section').style.display = isMulti ? 'none' : '';
+    $('set-gens-section').style.display = isPoke ? '' : 'none';
     $('set-sound').style.display = (isPoke || isCoop) ? '' : 'none';
     $('set-shadows').style.display = isPoke ? '' : 'none';
     $('set-cycle').style.display = (isPoke || isCoop) ? '' : 'none';
@@ -2743,7 +2827,8 @@ const Q = (function() {
   }
 
   function activateData(data) {
-    items = data; foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set(); completedRegions = new Set();
+    items = currentTab === 'pokemon' ? filterByGens(data, selectedGens) : data;
+    foundSet = new Set(); elapsedMs = 0; completedFamilies = new Set(); completedRegions = new Set();
     $timer.textContent = '00:00'; $input.value = ''; $input.disabled = false;
     $('total-count').textContent = items.length;
     buildIndex();
@@ -2925,6 +3010,27 @@ const Q = (function() {
       $('coop-settings-panel').classList.remove('open');
     }
   });
+
+  function initRegGenSelector() {
+    $('reg-gen-selector-wrap').innerHTML = buildGenSelectorHTML('reg', selectedGens);
+    wireGenSelector('reg', selectedGens, onRegGenChange);
+  }
+  function onRegGenChange() {
+    saveSettings();
+    if (currentTab === 'pokemon' && dataSources['pokemon']) {
+      var hadProgress = foundSet.size > 0 && !givenUp;
+      if (hadProgress && !confirm('Changing generations will reset your current game. Continue?')) {
+        try { var s = JSON.parse(localStorage.getItem('namemall_settings')); selectedGens = new Set(s.gens || [1,2,3,4,5,6,7,8,9]); } catch(e) { selectedGens = new Set([1,2,3,4,5,6,7,8,9]); }
+        initRegGenSelector();
+        return;
+      }
+      stopTimer(); timerRunning = false; givenUp = false;
+      localStorage.removeItem(saveKey());
+      activateData(dataSources['pokemon']);
+      updateUI();
+    }
+  }
+  initRegGenSelector();
 
   function syncSoundToggles() {
     $('tog-sound').classList.toggle('on', soundEnabled);
