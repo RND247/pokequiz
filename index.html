@@ -1773,7 +1773,7 @@ const Q = (function() {
     if (window.history.replaceState) window.history.replaceState({}, '', window.location.pathname + '?' + mode + '=' + roomId);
   }
   function clearRoomUrl() {
-    if (window.history.replaceState) window.history.replaceState({}, '', window.location.pathname);
+    if (window.history.replaceState) window.history.replaceState({}, '', window.location.pathname + window.location.hash);
   }
 
   function showDisconnectOverlay() {
@@ -3152,6 +3152,10 @@ const Q = (function() {
     document.querySelector('.stats').style.display = '';
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    if (window.history.replaceState) {
+      var qs = window.location.search;
+      window.history.replaceState({}, '', window.location.pathname + qs + (tab === 'pokemon' ? '' : '#' + tab));
+    }
 
     const isPoke = tab === 'pokemon';
     const isDuel = tab === 'duel';
@@ -3713,7 +3717,8 @@ const Q = (function() {
     } else if (_coopParam) {
       switchTab('coop');
     } else {
-      switchTab('pokemon');
+      var _hash = window.location.hash.replace('#', '');
+      switchTab((_hash === 'duel' || _hash === 'coop') ? _hash : 'pokemon');
     }
   }
   if (cycleFormsEnabled) startCycleForms();
