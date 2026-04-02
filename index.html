@@ -1737,16 +1737,23 @@ const Q = (function() {
   // ── Room Session (reconnection support) ──
 
   var ROOM_SESSION_KEY = 'nea-room-session';
+  var ROOM_SESSION_TTL = 30 * 60 * 1000;
   var disconnectWaiting = false;
 
   function saveRoomSession(mode, roomId, role) {
-    try { sessionStorage.setItem(ROOM_SESSION_KEY, JSON.stringify({ mode: mode, roomId: roomId, role: role })); } catch(e) {}
+    try { localStorage.setItem(ROOM_SESSION_KEY, JSON.stringify({ mode: mode, roomId: roomId, role: role, ts: Date.now() })); } catch(e) {}
   }
   function clearRoomSession() {
-    try { sessionStorage.removeItem(ROOM_SESSION_KEY); } catch(e) {}
+    try { localStorage.removeItem(ROOM_SESSION_KEY); } catch(e) {}
   }
   function getRoomSession() {
-    try { var s = sessionStorage.getItem(ROOM_SESSION_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+    try {
+      var s = localStorage.getItem(ROOM_SESSION_KEY);
+      if (!s) return null;
+      var obj = JSON.parse(s);
+      if (Date.now() - (obj.ts || 0) > ROOM_SESSION_TTL) { localStorage.removeItem(ROOM_SESSION_KEY); return null; }
+      return obj;
+    } catch(e) { return null; }
   }
   function setRoomUrl(mode, roomId) {
     if (window.history.replaceState) window.history.replaceState({}, '', window.location.pathname + '?' + mode + '=' + roomId);
@@ -1818,6 +1825,22 @@ const Q = (function() {
     const wrap = $('grid-wrap');
     const params = new URLSearchParams(window.location.search);
     const joinId = params.get('duel');
+
+    var _session = getRoomSession();
+    if (_session && _session.mode === 'duel' && !joinId) {
+      wrap.innerHTML = '<div class="duel-lobby"><h2>⚔️ Duel Mode</h2>' +
+        '<p>You have an active room. Reconnect?</p>' +
+        '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px;">' +
+        '<button class="btn" id="duel-reconn-btn" style="font-size:0.85rem;padding:8px 22px;">Reconnect</button>' +
+        '<button class="btn danger" id="duel-reconn-skip" style="font-size:0.85rem;padding:8px 22px;">New Room</button>' +
+        '</div></div>';
+      $('duel-reconn-btn').addEventListener('click', function() {
+        setRoomUrl('duel', _session.roomId);
+        attemptReconnect(_session);
+      });
+      $('duel-reconn-skip').addEventListener('click', function() { clearRoomSession(); duelShowLobby(); });
+      return;
+    }
 
     if (joinId) {
       wrap.innerHTML = '<div class="duel-lobby"><h2>⚔️ Duel Mode</h2><p>Connecting to host…</p><div class="duel-status" id="duel-status">Establishing connection…</div></div>';
@@ -2356,6 +2379,7 @@ const Q = (function() {
   function duelWaitReconnect() {
     showDisconnectOverlay();
     if (!duelPeer || duelPeer.destroyed) return;
+    duelPeer.removeAllListeners('connection');
     var handled = false;
     duelPeer.on('connection', function(newConn) {
       if (handled) { try { newConn.close(); } catch(e) {} return; }
@@ -2469,6 +2493,22 @@ const Q = (function() {
     const wrap = $('grid-wrap');
     const params = new URLSearchParams(window.location.search);
     const joinId = params.get('coop');
+
+    var _session = getRoomSession();
+    if (_session && _session.mode === 'coop' && !joinId) {
+      wrap.innerHTML = '<div class="duel-lobby"><h2>🤝 Co-Op Mode</h2>' +
+        '<p>You have an active room. Reconnect?</p>' +
+        '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px;">' +
+        '<button class="btn" id="coop-reconn-btn" style="font-size:0.85rem;padding:8px 22px;">Reconnect</button>' +
+        '<button class="btn danger" id="coop-reconn-skip" style="font-size:0.85rem;padding:8px 22px;">New Room</button>' +
+        '</div></div>';
+      $('coop-reconn-btn').addEventListener('click', function() {
+        setRoomUrl('coop', _session.roomId);
+        attemptReconnect(_session);
+      });
+      $('coop-reconn-skip').addEventListener('click', function() { clearRoomSession(); coopShowLobby(); });
+      return;
+    }
 
     if (joinId) {
       wrap.innerHTML = '<div class="duel-lobby"><h2>🤝 Co-Op Mode</h2><p>Connecting to host…</p><div class="duel-status" id="coop-status">Establishing connection…</div></div>';
@@ -3001,6 +3041,7 @@ const Q = (function() {
   function coopWaitReconnect() {
     showDisconnectOverlay();
     if (!coopPeer || coopPeer.destroyed) return;
+    coopPeer.removeAllListeners('connection');
     var handled = false;
     coopPeer.on('connection', function(newConn) {
       if (handled) { try { newConn.close(); } catch(e) {} return; }
@@ -3082,15 +3123,16 @@ const Q = (function() {
       for (let i = 0; i < items.length; i++) { if (!foundSet.has(i)) revealCard(i, true); }
       showModal(false);
     }
+    var _preserveSession = null;
     if ((currentTab === 'duel' && duelActive) || (currentTab === 'coop' && coopActive)) {
-      if (!confirm('Leaving will end the current session for both players. Continue?')) return;
-      var conn = currentTab === 'duel' ? duelConn : coopConn;
-      if (conn) try { conn.send({ type: 'end' }); } catch(e) {}
+      if (!confirm('You\'ll disconnect from the room. The other player can wait for you to reconnect.')) return;
+      _preserveSession = getRoomSession();
     }
     stopTimer(); timerRunning = false; givenUp = false;
     if (typeof paused !== 'undefined' && paused) { paused = false; $('pause-overlay').classList.remove('active'); $('btn-pause').textContent = '⏸ Pause'; }
     if (currentTab === 'duel') duelCleanup();
     if (currentTab === 'coop') coopCleanup();
+    if (_preserveSession) saveRoomSession(_preserveSession.mode, _preserveSession.roomId, _preserveSession.role);
     $input.style.display = '';
     $input.disabled = false;
     document.querySelector('.stats').style.display = '';
