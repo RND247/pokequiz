@@ -336,14 +336,13 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 .duel-settings .ds-order-btns { display: flex; gap: 0; background: var(--bg-card); border-radius: 8px; padding: 2px; border: 1px solid var(--border); }
 .duel-settings .ds-order-btns button { font-size: 0.65rem; padding: 5px 10px; border-radius: 6px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; transition: all 0.18s; font-weight: 600; }
 .duel-settings .ds-order-btns button.active { background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(233,69,96,0.35); }
-.duel-settings .ds-timer-wrap { display: flex; align-items: center; gap: 6px; }
-.duel-settings .ds-timer-wrap input[type="number"] { width: 44px; padding: 5px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 0.78rem; text-align: center; -moz-appearance: textfield; transition: border-color 0.15s; }
-.duel-settings .ds-timer-wrap input[type="number"]:focus { border-color: var(--accent); outline: none; }
-.duel-settings .ds-timer-wrap input[type="number"]::-webkit-inner-spin-button,
-.duel-settings .ds-timer-wrap input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.duel-settings .ds-timer-wrap span.ds-timer-sep { font-size: 0.72rem; color: var(--text-dim); font-weight: 600; }
-.duel-settings .ds-timer-wrap .ds-timer-off { font-size: 0.65rem; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-dim); cursor: pointer; transition: all 0.18s; font-weight: 600; }
-.duel-settings .ds-timer-wrap .ds-timer-off.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 1px 4px rgba(233,69,96,0.35); }
+.duel-settings .ds-timer-inputs { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 0 2px; overflow: hidden; max-height: 0; opacity: 0; transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease; }
+.duel-settings .ds-timer-inputs.open { max-height: 50px; opacity: 1; padding: 10px 0 2px; }
+.duel-settings .ds-timer-inputs input[type="number"] { width: 48px; padding: 6px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 0.82rem; text-align: center; -moz-appearance: textfield; transition: border-color 0.15s; }
+.duel-settings .ds-timer-inputs input[type="number"]:focus { border-color: var(--accent); outline: none; }
+.duel-settings .ds-timer-inputs input[type="number"]::-webkit-inner-spin-button,
+.duel-settings .ds-timer-inputs input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.duel-settings .ds-timer-inputs span.ds-timer-sep { font-size: 0.75rem; color: var(--text-dim); font-weight: 600; }
 .gen-selector { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; padding: 2px 0; }
 .gen-selector button { font-size: 0.66rem; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-dim); cursor: pointer; transition: all 0.18s; font-weight: 600; min-width: 30px; }
 .gen-selector button:hover { border-color: var(--text-dim); color: var(--text); }
@@ -1788,9 +1787,63 @@ const Q = (function() {
     paused = false;
     $('disconnect-overlay').classList.remove('active');
     startTimer();
+    startHeartbeat();
     $input.disabled = false;
     $input.focus();
   }
+
+  var heartbeatInterval = null;
+  var heartbeatTimeout = null;
+  var HEARTBEAT_MS = 3000;
+  var HEARTBEAT_DEAD_MS = 9000;
+
+  function getActiveConn() {
+    if (duelActive && duelConn && duelConn.open) return duelConn;
+    if (coopActive && coopConn && coopConn.open) return coopConn;
+    return null;
+  }
+  function startHeartbeat() {
+    stopHeartbeat();
+    heartbeatInterval = setInterval(function() {
+      var c = getActiveConn();
+      if (c) try { c.send({ type: 'ping' }); } catch(e) {}
+    }, HEARTBEAT_MS);
+    resetHeartbeatTimeout();
+  }
+  function stopHeartbeat() {
+    if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+    if (heartbeatTimeout) { clearTimeout(heartbeatTimeout); heartbeatTimeout = null; }
+  }
+  function resetHeartbeatTimeout() {
+    if (heartbeatTimeout) clearTimeout(heartbeatTimeout);
+    heartbeatTimeout = setTimeout(function() {
+      if (duelActive && !disconnectWaiting) duelWaitReconnect();
+      else if (coopActive && !disconnectWaiting) coopWaitReconnect();
+    }, HEARTBEAT_DEAD_MS);
+  }
+  function handleHeartbeatMsg(msg) {
+    if (msg.type === 'ping') {
+      var c = getActiveConn();
+      if (c) try { c.send({ type: 'pong' }); } catch(e) {}
+      resetHeartbeatTimeout();
+      return true;
+    }
+    if (msg.type === 'pong') {
+      resetHeartbeatTimeout();
+      return true;
+    }
+    if (msg.type === 'bye') {
+      if (duelActive && !disconnectWaiting) duelWaitReconnect();
+      else if (coopActive && !disconnectWaiting) coopWaitReconnect();
+      return true;
+    }
+    return false;
+  }
+
+  window.addEventListener('beforeunload', function() {
+    var c = getActiveConn();
+    if (c) try { c.send({ type: 'bye' }); } catch(e) {}
+  });
 
   // ── Duel Mode ──
 
@@ -1821,6 +1874,7 @@ const Q = (function() {
     duelActive = false;
     duelFinishMe = false;
     duelFinishOpponent = false;
+    stopHeartbeat();
     if (duelConnTimeout) { clearTimeout(duelConnTimeout); duelConnTimeout = null; }
     if (duelConn) { try { duelConn.close(); } catch(e){} duelConn = null; }
     if (duelPeer) { try { duelPeer.destroy(); } catch(e){} duelPeer = null; }
@@ -1876,14 +1930,13 @@ const Q = (function() {
           '<div class="ds-row ds-row-solo"><span class="ds-label">Generations</span></div>' +
           '<div id="ds-gen-selector-wrap"></div>' +
           '<div class="ds-divider"></div>' +
-          '<div class="ds-row"><span class="ds-label">Timer</span>' +
-            '<div class="ds-timer-wrap">' +
-              '<button class="ds-timer-off active" id="ds-timer-off">Off</button>' +
-              '<input type="number" id="ds-timer-h" min="0" max="12" value="0" title="Hours">'+
-              '<span class="ds-timer-sep">h</span>' +
-              '<input type="number" id="ds-timer-m" min="0" max="59" value="10" title="Minutes">'+
-              '<span class="ds-timer-sep">m</span>' +
-            '</div></div>' +
+          '<div class="ds-row"><span class="ds-label">Timer</span><div class="toggle-switch" id="ds-timer-tog"></div></div>' +
+          '<div class="ds-timer-inputs" id="ds-timer-inputs">' +
+            '<input type="number" id="ds-timer-h" min="0" max="12" value="0" title="Hours">'+
+            '<span class="ds-timer-sep">h</span>' +
+            '<input type="number" id="ds-timer-m" min="0" max="59" value="10" title="Minutes">'+
+            '<span class="ds-timer-sep">m</span>' +
+          '</div>' +
         '</div>' +
         '<button class="btn lobby-create-btn" id="duel-create-btn">Create Duel</button>' +
         '<div id="duel-link-area"></div>' +
@@ -1898,7 +1951,8 @@ const Q = (function() {
         '</div>' +
         '</div>';
 
-      var dsTimerOff = $('ds-timer-off');
+      var dsTimerTog = $('ds-timer-tog');
+      var dsTimerInputs = $('ds-timer-inputs');
       var dsTimerH = $('ds-timer-h');
       var dsTimerM = $('ds-timer-m');
       var dsTimerActive = false;
@@ -1910,15 +1964,12 @@ const Q = (function() {
         if (total > 43200000) { dsTimerH.value = 12; dsTimerM.value = 0; total = 43200000; }
         duelSettings.timerMs = total;
       }
-      dsTimerOff.addEventListener('click', function() {
+      dsTimerTog.addEventListener('click', function() {
         dsTimerActive = !dsTimerActive;
-        this.classList.toggle('active', !dsTimerActive);
-        dsTimerH.disabled = !dsTimerActive;
-        dsTimerM.disabled = !dsTimerActive;
+        this.classList.toggle('on', dsTimerActive);
+        dsTimerInputs.classList.toggle('open', dsTimerActive);
         dsUpdateTimer();
       });
-      dsTimerH.disabled = true;
-      dsTimerM.disabled = true;
       dsTimerH.addEventListener('change', dsUpdateTimer);
       dsTimerM.addEventListener('change', dsUpdateTimer);
 
@@ -2133,6 +2184,7 @@ const Q = (function() {
     startTimer();
     startCountdown(duelSettings.timerMs);
     if (cycleFormsEnabled) startCycleForms();
+    startHeartbeat();
     $input.focus();
 
     setRoomUrl('duel', duelRoomId);
@@ -2270,6 +2322,8 @@ const Q = (function() {
   }
 
   function duelOnMessage(msg) {
+    if (handleHeartbeatMsg(msg)) return;
+    if (heartbeatTimeout) resetHeartbeatTimeout();
     if (msg.type === 'start') {
       duelSettings.shadows = msg.shadows;
       duelSettings.orderMode = msg.orderMode;
@@ -2391,6 +2445,7 @@ const Q = (function() {
   }
 
   function duelWaitReconnect() {
+    stopHeartbeat();
     showDisconnectOverlay();
     if (!duelPeer || duelPeer.destroyed) return;
     duelPeer.removeAllListeners('connection');
@@ -2462,6 +2517,7 @@ const Q = (function() {
       startTimer();
       if (msg.countdownRemaining > 0) startCountdown(msg.countdownRemaining);
       if (cycleFormsEnabled) startCycleForms();
+      startHeartbeat();
       $input.focus();
       saveRoomSession('duel', duelRoomId, duelRole);
     }
@@ -2491,6 +2547,7 @@ const Q = (function() {
     coopActive = false;
     coopFinishMe = false;
     coopFinishOpponent = false;
+    stopHeartbeat();
     if (coopConnTimeout) { clearTimeout(coopConnTimeout); coopConnTimeout = null; }
     if (coopConn) { try { coopConn.close(); } catch(e){} coopConn = null; }
     if (coopPeer) { try { coopPeer.destroy(); } catch(e){} coopPeer = null; }
@@ -2544,14 +2601,13 @@ const Q = (function() {
           '<div class="ds-row ds-row-solo"><span class="ds-label">Generations</span></div>' +
           '<div id="cs-gen-selector-wrap"></div>' +
           '<div class="ds-divider"></div>' +
-          '<div class="ds-row"><span class="ds-label">Timer</span>' +
-            '<div class="ds-timer-wrap">' +
-              '<button class="ds-timer-off active" id="cs-timer-off">Off</button>' +
-              '<input type="number" id="cs-timer-h" min="0" max="12" value="0" title="Hours">'+
-              '<span class="ds-timer-sep">h</span>' +
-              '<input type="number" id="cs-timer-m" min="0" max="59" value="10" title="Minutes">'+
-              '<span class="ds-timer-sep">m</span>' +
-            '</div></div>' +
+          '<div class="ds-row"><span class="ds-label">Timer</span><div class="toggle-switch" id="cs-timer-tog"></div></div>' +
+          '<div class="ds-timer-inputs" id="cs-timer-inputs">' +
+            '<input type="number" id="cs-timer-h" min="0" max="12" value="0" title="Hours">'+
+            '<span class="ds-timer-sep">h</span>' +
+            '<input type="number" id="cs-timer-m" min="0" max="59" value="10" title="Minutes">'+
+            '<span class="ds-timer-sep">m</span>' +
+          '</div>' +
         '</div>' +
         '<button class="btn lobby-create-btn" id="coop-create-btn">Create Room</button>' +
         '<div id="coop-link-area"></div>' +
@@ -2566,7 +2622,8 @@ const Q = (function() {
         '</div>' +
         '</div>';
 
-      var csTimerOff = $('cs-timer-off');
+      var csTimerTog = $('cs-timer-tog');
+      var csTimerInputs = $('cs-timer-inputs');
       var csTimerH = $('cs-timer-h');
       var csTimerM = $('cs-timer-m');
       var csTimerActive = false;
@@ -2578,15 +2635,12 @@ const Q = (function() {
         if (total > 43200000) { csTimerH.value = 12; csTimerM.value = 0; total = 43200000; }
         coopSettings.timerMs = total;
       }
-      csTimerOff.addEventListener('click', function() {
+      csTimerTog.addEventListener('click', function() {
         csTimerActive = !csTimerActive;
-        this.classList.toggle('active', !csTimerActive);
-        csTimerH.disabled = !csTimerActive;
-        csTimerM.disabled = !csTimerActive;
+        this.classList.toggle('on', csTimerActive);
+        csTimerInputs.classList.toggle('open', csTimerActive);
         csUpdateTimer();
       });
-      csTimerH.disabled = true;
-      csTimerM.disabled = true;
       csTimerH.addEventListener('change', csUpdateTimer);
       csTimerM.addEventListener('change', csUpdateTimer);
 
@@ -2791,6 +2845,7 @@ const Q = (function() {
     startTimer();
     startCountdown(coopSettings.timerMs);
     if (cycleFormsEnabled) startCycleForms();
+    startHeartbeat();
     $input.focus();
 
     setRoomUrl('coop', coopRoomId);
@@ -2929,6 +2984,8 @@ const Q = (function() {
   }
 
   function coopOnMessage(msg) {
+    if (handleHeartbeatMsg(msg)) return;
+    if (heartbeatTimeout) resetHeartbeatTimeout();
     if (msg.type === 'start') {
       coopSettings.shadows = msg.shadows;
       coopSettings.orderMode = msg.orderMode;
@@ -3053,6 +3110,7 @@ const Q = (function() {
   }
 
   function coopWaitReconnect() {
+    stopHeartbeat();
     showDisconnectOverlay();
     if (!coopPeer || coopPeer.destroyed) return;
     coopPeer.removeAllListeners('connection');
@@ -3119,6 +3177,7 @@ const Q = (function() {
       startTimer();
       if (msg.countdownRemaining > 0) startCountdown(msg.countdownRemaining);
       if (cycleFormsEnabled) startCycleForms();
+      startHeartbeat();
       $input.focus();
       saveRoomSession('coop', coopRoomId, coopRole);
     }
