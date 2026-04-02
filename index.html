@@ -317,49 +317,63 @@ footer a { color: var(--text-pinyin); text-decoration: none; }
 }
 
 /* ── Duel Mode ── */
-.duel-lobby { text-align: center; padding: 40px 20px; max-width: 500px; margin: 0 auto; }
-.duel-lobby h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 8px; }
-.duel-lobby p { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 16px; }
+.duel-lobby { text-align: center; padding: 36px 20px 40px; max-width: 440px; margin: 0 auto; }
+.duel-lobby h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.01em; }
+.duel-lobby p { color: var(--text-dim); font-size: 0.82rem; margin-bottom: 20px; line-height: 1.5; }
 .duel-lobby .btn { margin: 6px; }
-.duel-settings { text-align: left; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 18px auto 14px; max-width: 340px; }
-.duel-settings .ds-title { font-size: 0.78rem; font-weight: 800; color: var(--text); margin-bottom: 10px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
-.duel-settings .ds-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; }
-.duel-settings .ds-label { font-size: 0.75rem; color: var(--text); }
-.duel-settings .ds-divider { border-top: 1px solid var(--border); margin: 8px 0; }
-.duel-settings .ds-order-btns { display: flex; gap: 4px; }
-.duel-settings .ds-order-btns button { font-size: 0.62rem; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-weight: 600; }
-.duel-settings .ds-order-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.lobby-create-btn { font-size: 0.88rem !important; padding: 12px 32px !important; margin-top: 14px !important; border-radius: 10px !important; background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; box-shadow: 0 2px 12px rgba(233,69,96,0.3); letter-spacing: 0.6px !important; transition: all 0.2s !important; }
+.lobby-create-btn:hover { box-shadow: 0 4px 20px rgba(233,69,96,0.45) !important; transform: translateY(-1px); }
+.lobby-create-btn:disabled { opacity: 0.5; box-shadow: none !important; transform: none !important; }
+.lobby-action-row { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
+.lobby-action-row .btn { font-size: 0.82rem; padding: 10px 24px; border-radius: 8px; }
+.duel-settings { text-align: left; background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px 18px; margin: 20px auto 6px; max-width: 380px; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
+.duel-settings .ds-title { font-size: 0.7rem; font-weight: 700; color: var(--text-dim); margin-bottom: 14px; text-align: center; text-transform: uppercase; letter-spacing: 1.2px; }
+.duel-settings .ds-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; }
+.duel-settings .ds-label { font-size: 0.8rem; color: var(--text); font-weight: 600; }
+.duel-settings .ds-row-solo { justify-content: center; }
+.duel-settings .ds-row-solo .ds-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; }
+.duel-settings .ds-divider { border: none; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 10px 0; }
+.duel-settings .ds-order-btns { display: flex; gap: 0; background: var(--bg-card); border-radius: 8px; padding: 2px; border: 1px solid var(--border); }
+.duel-settings .ds-order-btns button { font-size: 0.65rem; padding: 5px 10px; border-radius: 6px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; transition: all 0.18s; font-weight: 600; }
+.duel-settings .ds-order-btns button.active { background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(233,69,96,0.35); }
 .duel-settings .ds-timer-wrap { display: flex; align-items: center; gap: 6px; }
-.duel-settings .ds-timer-wrap input[type="number"] { width: 42px; padding: 3px 4px; border-radius: 5px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 0.72rem; text-align: center; -moz-appearance: textfield; }
+.duel-settings .ds-timer-wrap input[type="number"] { width: 44px; padding: 5px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 0.78rem; text-align: center; -moz-appearance: textfield; transition: border-color 0.15s; }
+.duel-settings .ds-timer-wrap input[type="number"]:focus { border-color: var(--accent); outline: none; }
 .duel-settings .ds-timer-wrap input[type="number"]::-webkit-inner-spin-button,
 .duel-settings .ds-timer-wrap input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.duel-settings .ds-timer-wrap span.ds-timer-sep { font-size: 0.72rem; color: var(--text-dim); }
-.duel-settings .ds-timer-wrap .ds-timer-off { font-size: 0.62rem; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-weight: 600; }
-.duel-settings .ds-timer-wrap .ds-timer-off.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.gen-selector { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
-.gen-selector button { font-size: 0.62rem; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-weight: 600; min-width: 28px; }
-.gen-selector button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.gen-selector-wrap { display: flex; flex-direction: column; gap: 6px; }
+.duel-settings .ds-timer-wrap span.ds-timer-sep { font-size: 0.72rem; color: var(--text-dim); font-weight: 600; }
+.duel-settings .ds-timer-wrap .ds-timer-off { font-size: 0.65rem; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-dim); cursor: pointer; transition: all 0.18s; font-weight: 600; }
+.duel-settings .ds-timer-wrap .ds-timer-off.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 1px 4px rgba(233,69,96,0.35); }
+.gen-selector { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; padding: 2px 0; }
+.gen-selector button { font-size: 0.66rem; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-dim); cursor: pointer; transition: all 0.18s; font-weight: 600; min-width: 30px; }
+.gen-selector button:hover { border-color: var(--text-dim); color: var(--text); }
+.gen-selector button.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 1px 4px rgba(233,69,96,0.25); }
+.gen-selector-wrap { display: flex; flex-direction: column; gap: 8px; }
 .gen-selector-actions { display: flex; gap: 6px; justify-content: center; }
-.gen-selector-actions button { font-size: 0.58rem; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; font-weight: 600; }
+.gen-selector-actions button { font-size: 0.62rem; padding: 3px 10px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-dim); cursor: pointer; font-weight: 600; transition: all 0.15s; }
 .gen-selector-actions button:hover { color: var(--text); border-color: var(--text-dim); }
-.gen-total { font-size: 0.68rem; color: var(--text-dim); text-align: center; margin-top: 2px; font-weight: 600; }
+.gen-total { font-size: 0.7rem; color: var(--text-dim); text-align: center; margin-top: 2px; font-weight: 600; }
 .countdown-display { font-size: 0.75rem; font-weight: 700; color: var(--accent); margin-left: 8px; }
 .countdown-display.warning { color: #ef4444; animation: pulse-warn 1s ease-in-out infinite; }
 @keyframes pulse-warn { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-.duel-link-box { display: flex; align-items: center; gap: 6px; margin: 16px auto; max-width: 400px; }
-.duel-link-box input { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 10px; font-size: 0.8rem; }
+.duel-link-box { display: flex; align-items: center; gap: 8px; margin: 14px auto; max-width: 380px; }
+.duel-link-box input { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 0.78rem; transition: border-color 0.15s; }
+.duel-link-box input:focus { border-color: var(--accent); outline: none; }
 .duel-link-box .btn { flex-shrink: 0; }
-.duel-status { color: var(--text-pinyin); font-size: 0.85rem; margin-top: 12px; }
-.room-code-display { font-family: 'Courier New', Courier, monospace; font-size: 2rem; font-weight: 900; letter-spacing: 0.35em; color: var(--accent); background: var(--input-bg); border: 2px dashed var(--accent); border-radius: 10px; padding: 12px 24px; display: inline-block; margin: 12px 0 4px; user-select: all; }
-.lobby-or-divider { display: flex; align-items: center; gap: 14px; margin: 24px auto; max-width: 340px; color: var(--text-dim); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-.lobby-or-divider::before, .lobby-or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.join-room-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 14px; margin: 0 auto; max-width: 340px; text-align: center; }
-.join-room-section .jr-title { font-size: 0.78rem; font-weight: 800; color: var(--text); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-.join-room-section .jr-row { display: flex; align-items: center; gap: 6px; }
-.join-room-section .jr-row input { flex: 1; font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; text-align: center; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 10px 10px; }
-.join-room-section .jr-row input::placeholder { font-family: inherit; letter-spacing: 0.15em; font-weight: 400; font-size: 0.8rem; color: var(--text-dim); text-transform: none; }
-.join-room-section .jr-row .btn { flex-shrink: 0; padding: 10px 18px; }
+.duel-status { color: var(--text-pinyin); font-size: 0.85rem; margin-top: 14px; font-weight: 500; }
+.room-code-display { font-family: 'Courier New', Courier, monospace; font-size: 2.2rem; font-weight: 900; letter-spacing: 0.4em; color: var(--accent); background: var(--input-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 14px 28px; display: inline-block; margin: 14px 0 6px; user-select: all; box-shadow: 0 0 20px rgba(233,69,96,0.15); }
+.share-hint { font-size: 0.78rem; color: var(--text-dim); margin-top: 16px; }
+.share-hint-sub { font-size: 0.72rem; color: var(--text-dim); margin-top: 8px; opacity: 0.7; }
+.lobby-or-divider { display: flex; align-items: center; gap: 16px; margin: 28px auto; max-width: 380px; color: var(--text-dim); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+.lobby-or-divider::before, .lobby-or-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--border)); }
+.lobby-or-divider::after { background: linear-gradient(90deg, var(--border), transparent); }
+.join-room-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px 18px; margin: 0 auto; max-width: 380px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
+.join-room-section .jr-title { font-size: 0.7rem; font-weight: 700; color: var(--text-dim); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1.2px; }
+.join-room-section .jr-row { display: flex; align-items: center; gap: 8px; }
+.join-room-section .jr-row input { flex: 1; font-family: 'Courier New', Courier, monospace; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; text-align: center; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 11px 10px; transition: border-color 0.15s; }
+.join-room-section .jr-row input:focus { border-color: var(--accent); outline: none; }
+.join-room-section .jr-row input::placeholder { font-family: inherit; letter-spacing: 0.12em; font-weight: 400; font-size: 0.78rem; color: var(--text-dim); text-transform: none; }
+.join-room-section .jr-row .btn { flex-shrink: 0; padding: 11px 20px; }
 .duel-sticky { padding: 6px 0 4px; border-top: 1px solid var(--border); margin-top: 6px; }
 .duel-score { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .duel-score .ds-blue { color: #60a5fa; }
@@ -1830,9 +1844,9 @@ const Q = (function() {
     if (_session && _session.mode === 'duel' && !joinId) {
       wrap.innerHTML = '<div class="duel-lobby"><h2>⚔️ Duel Mode</h2>' +
         '<p>You have an active room. Reconnect?</p>' +
-        '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px;">' +
-        '<button class="btn" id="duel-reconn-btn" style="font-size:0.85rem;padding:8px 22px;">Reconnect</button>' +
-        '<button class="btn danger" id="duel-reconn-skip" style="font-size:0.85rem;padding:8px 22px;">New Room</button>' +
+        '<div class="lobby-action-row">' +
+        '<button class="btn" id="duel-reconn-btn">Reconnect</button>' +
+        '<button class="btn danger" id="duel-reconn-skip">New Room</button>' +
         '</div></div>';
       $('duel-reconn-btn').addEventListener('click', function() {
         setRoomUrl('duel', _session.roomId);
@@ -1859,7 +1873,7 @@ const Q = (function() {
               '<button data-mode="random"' + (duelSettings.orderMode === 'random' ? ' class="active"' : '') + '>Random</button>' +
             '</div></div>' +
           '<div class="ds-divider"></div>' +
-          '<div class="ds-row"><span class="ds-label">Generations</span></div>' +
+          '<div class="ds-row ds-row-solo"><span class="ds-label">Generations</span></div>' +
           '<div id="ds-gen-selector-wrap"></div>' +
           '<div class="ds-divider"></div>' +
           '<div class="ds-row"><span class="ds-label">Timer</span>' +
@@ -1871,7 +1885,7 @@ const Q = (function() {
               '<span class="ds-timer-sep">m</span>' +
             '</div></div>' +
         '</div>' +
-        '<button class="btn" id="duel-create-btn" style="font-size:0.9rem;padding:10px 28px;margin-top:10px;">Create Duel</button>' +
+        '<button class="btn lobby-create-btn" id="duel-create-btn">Create Duel</button>' +
         '<div id="duel-link-area"></div>' +
         '<div class="duel-status" id="duel-status"></div>' +
         '<div class="lobby-or-divider">or</div>' +
@@ -1975,9 +1989,9 @@ const Q = (function() {
       $('duel-join-section').style.display = 'none';
       document.querySelector('.lobby-or-divider').style.display = 'none';
       $('duel-link-area').innerHTML =
-        '<p style="margin-top:14px;font-size:0.8rem;color:var(--text-dim)">Share this code with your opponent:</p>' +
+        '<p class="share-hint">Share this code with your opponent:</p>' +
         '<div class="room-code-display">' + code + '</div>' +
-        '<p style="margin-top:8px;font-size:0.72rem;color:var(--text-dim)">or share this link:</p>' +
+        '<p class="share-hint-sub">or share this link:</p>' +
         '<div class="duel-link-box">' +
         '<input type="text" id="duel-link-input" value="' + link + '" readonly>' +
         '<button class="btn" id="duel-copy-btn">Copy</button></div>';
@@ -2498,9 +2512,9 @@ const Q = (function() {
     if (_session && _session.mode === 'coop' && !joinId) {
       wrap.innerHTML = '<div class="duel-lobby"><h2>🤝 Co-Op Mode</h2>' +
         '<p>You have an active room. Reconnect?</p>' +
-        '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px;">' +
-        '<button class="btn" id="coop-reconn-btn" style="font-size:0.85rem;padding:8px 22px;">Reconnect</button>' +
-        '<button class="btn danger" id="coop-reconn-skip" style="font-size:0.85rem;padding:8px 22px;">New Room</button>' +
+        '<div class="lobby-action-row">' +
+        '<button class="btn" id="coop-reconn-btn">Reconnect</button>' +
+        '<button class="btn danger" id="coop-reconn-skip">New Room</button>' +
         '</div></div>';
       $('coop-reconn-btn').addEventListener('click', function() {
         setRoomUrl('coop', _session.roomId);
@@ -2527,7 +2541,7 @@ const Q = (function() {
               '<button data-mode="random"' + (coopSettings.orderMode === 'random' ? ' class="active"' : '') + '>Random</button>' +
             '</div></div>' +
           '<div class="ds-divider"></div>' +
-          '<div class="ds-row"><span class="ds-label">Generations</span></div>' +
+          '<div class="ds-row ds-row-solo"><span class="ds-label">Generations</span></div>' +
           '<div id="cs-gen-selector-wrap"></div>' +
           '<div class="ds-divider"></div>' +
           '<div class="ds-row"><span class="ds-label">Timer</span>' +
@@ -2539,7 +2553,7 @@ const Q = (function() {
               '<span class="ds-timer-sep">m</span>' +
             '</div></div>' +
         '</div>' +
-        '<button class="btn" id="coop-create-btn" style="font-size:0.9rem;padding:10px 28px;margin-top:10px;">Create Room</button>' +
+        '<button class="btn lobby-create-btn" id="coop-create-btn">Create Room</button>' +
         '<div id="coop-link-area"></div>' +
         '<div class="duel-status" id="coop-status"></div>' +
         '<div class="lobby-or-divider">or</div>' +
@@ -2638,9 +2652,9 @@ const Q = (function() {
       var orDiv = document.querySelector('.duel-lobby .lobby-or-divider');
       if (orDiv) orDiv.style.display = 'none';
       $('coop-link-area').innerHTML =
-        '<p style="margin-top:14px;font-size:0.8rem;color:var(--text-dim)">Share this code with your partner:</p>' +
+        '<p class="share-hint">Share this code with your partner:</p>' +
         '<div class="room-code-display">' + code + '</div>' +
-        '<p style="margin-top:8px;font-size:0.72rem;color:var(--text-dim)">or share this link:</p>' +
+        '<p class="share-hint-sub">or share this link:</p>' +
         '<div class="duel-link-box">' +
         '<input type="text" id="coop-link-input" value="' + link + '" readonly>' +
         '<button class="btn" id="coop-copy-btn">Copy</button></div>';
